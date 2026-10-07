@@ -1,0 +1,10 @@
+{
+  "string": [
+    { "name": "form_extension_name", "value": "词萤桌面卡片" },
+    { "name": "form_extension_description", "value": "桌面上的每日一词与今日计划" },
+    { "name": "form_daily_word_name", "value": "每日一词" },
+    { "name": "form_daily_word_description", "value": "随手记住一个词，查看今日学习进度" },
+    { "name": "form_today_plan_name", "value": "今日计划" },
+    { "name": "form_today_plan_description", "value": "查看新词和复习，开始三分钟速学" }
+  ]
+}

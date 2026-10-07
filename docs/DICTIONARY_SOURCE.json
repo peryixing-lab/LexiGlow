@@ -1,0 +1,39 @@
+{
+  "dictionaryVersion": 2,
+  "sourceRepository": "https://github.com/skywind3000/ECDICT",
+  "sourceCommit": "bc015ed2e24a7abef49fc6dbbb7fe32c1dadaf8b",
+  "sourceCommitDate": "2025-03-28",
+  "sourceUrl": "https://raw.githubusercontent.com/skywind3000/ECDICT/bc015ed2e24a7abef49fc6dbbb7fe32c1dadaf8b/ecdict.csv",
+  "sourceSha256": "1a6947e04785db63613a92e14903cdae7954f7e84860b10e68e5c7cbb3f9c3cf",
+  "sourceLicense": "MIT",
+  "sourceLicenseUrl": "https://github.com/skywind3000/ECDICT/blob/bc015ed2e24a7abef49fc6dbbb7fe32c1dadaf8b/LICENSE",
+  "sourceLicenseCopyright": "Copyright (c) 2025 Linwei",
+  "sourceRows": 770611,
+  "rawTagCounts": {
+    "cet4": 3849,
+    "cet6": 5407,
+    "ielts": 5040,
+    "ky": 4801,
+    "toefl": 6974
+  },
+  "filteredWordsByTag": {
+    "cet4": [],
+    "cet6": [],
+    "ielts": [],
+    "ky": [],
+    "toefl": []
+  },
+  "books": {
+    "cet4": 3849,
+    "cet6": 5407,
+    "graduate": 4801,
+    "ielts": 5040,
+    "toefl": 6974
+  },
+  "uniqueWords": 10689,
+  "wordsWithOriginalExamples": 298,
+  "catalogBytes": 3157625,
+  "catalogSha256": "3037ce89189565b27c77bcc4ab3b39e118c62d3635866dd3c25cdefc1bb0b242",
+  "examSyllabusYear": null,
+  "transform": "Lowercase word heads, preserve source exam tags, sort by contemporary frequency then BNC rank, use first nonempty Chinese definition line, apply original editorial overrides, no invented examples."
+}

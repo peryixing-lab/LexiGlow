@@ -1,0 +1,36 @@
+{
+  "forms": [
+    {
+      "name": "daily_word",
+      "displayName": "$string:form_daily_word_name",
+      "description": "$string:form_daily_word_description",
+      "src": "./ets/widget/pages/DailyWordCard.ets",
+      "uiSyntax": "arkts",
+      "window": { "designWidth": 320, "autoDesignWidth": true },
+      "colorMode": "auto",
+      "isDefault": true,
+      "isDynamic": true,
+      "updateEnabled": true,
+      "updateDuration": 1,
+      "scheduledUpdateTime": "00:05",
+      "defaultDimension": "2*2",
+      "supportDimensions": ["2*2"]
+    },
+    {
+      "name": "today_plan",
+      "displayName": "$string:form_today_plan_name",
+      "description": "$string:form_today_plan_description",
+      "src": "./ets/widget/pages/TodayPlanCard.ets",
+      "uiSyntax": "arkts",
+      "window": { "designWidth": 640, "autoDesignWidth": true },
+      "colorMode": "auto",
+      "isDefault": false,
+      "isDynamic": true,
+      "updateEnabled": true,
+      "updateDuration": 1,
+      "scheduledUpdateTime": "00:05",
+      "defaultDimension": "2*4",
+      "supportDimensions": ["2*4"]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "让单词一点一点亮起来"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "词萤"
+    }
+  ]
+}

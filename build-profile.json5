@@ -1,0 +1,55 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/thousandmiles/.ohos/config/default_LexiGlow_ibt-zkkGH5Ngzy9OUWWgcdgVibpG3YXo4GPu5K6NX4A=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001AE1FD3F93A610A61DD53351CFD12FB9ABB733940F4901004AFDE1FF707F352B215D7FB94430EC",
+          "profile": "/Users/thousandmiles/.ohos/config/default_LexiGlow_ibt-zkkGH5Ngzy9OUWWgcdgVibpG3YXo4GPu5K6NX4A=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/thousandmiles/.ohos/config/default_LexiGlow_ibt-zkkGH5Ngzy9OUWWgcdgVibpG3YXo4GPu5K6NX4A=.p12",
+          "storePassword": "0000001AA95F3D6E876C73467D567EBB1585585611F8A2DE48FA27FF7385A1E7C4257503DEB54EDA1306"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "targetSdkVersion": "26.0.0",
+        "compatibleSdkVersion": "26.0.0",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

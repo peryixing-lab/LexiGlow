@@ -1,0 +1,2200 @@
+{
+  "abandon": {
+    "word": "abandon",
+    "phonetic": "/əˈbændən/",
+    "meaning": "v. 放弃；抛弃",
+    "example": "We abandoned the old plan.",
+    "translation": "我们放弃了原来的计划。"
+  },
+  "ability": {
+    "word": "ability",
+    "phonetic": "/əˈbɪləti/",
+    "meaning": "n. 能力",
+    "example": "Practice improves your reading ability.",
+    "translation": "练习能提高你的阅读能力。"
+  },
+  "accept": {
+    "word": "accept",
+    "phonetic": "/əkˈsept/",
+    "meaning": "v. 接受",
+    "example": "She accepted my invitation.",
+    "translation": "她接受了我的邀请。"
+  },
+  "achieve": {
+    "word": "achieve",
+    "phonetic": "/əˈtʃiːv/",
+    "meaning": "v. 实现；达到",
+    "example": "You can achieve this small goal today.",
+    "translation": "你今天就能实现这个小目标。"
+  },
+  "active": {
+    "word": "active",
+    "phonetic": "/ˈæktɪv/",
+    "meaning": "adj. 活跃的；积极的",
+    "example": "He is an active member of the club.",
+    "translation": "他是社团里的一名活跃成员。"
+  },
+  "adapt": {
+    "word": "adapt",
+    "phonetic": "/əˈdæpt/",
+    "meaning": "v. 适应；改编",
+    "example": "It takes time to adapt to a new school.",
+    "translation": "适应一所新学校需要时间。"
+  },
+  "admire": {
+    "word": "admire",
+    "phonetic": "/ədˈmaɪə/",
+    "meaning": "v. 钦佩；欣赏",
+    "example": "I admire her patience.",
+    "translation": "我钦佩她的耐心。"
+  },
+  "admit": {
+    "word": "admit",
+    "phonetic": "/ədˈmɪt/",
+    "meaning": "v. 承认；准许进入",
+    "example": "He admitted his mistake.",
+    "translation": "他承认了自己的错误。"
+  },
+  "advice": {
+    "word": "advice",
+    "phonetic": "/ədˈvaɪs/",
+    "meaning": "n. 建议；忠告",
+    "example": "Thank you for your useful advice.",
+    "translation": "谢谢你提出的有用建议。"
+  },
+  "affect": {
+    "word": "affect",
+    "phonetic": "/əˈfekt/",
+    "meaning": "v. 影响",
+    "example": "Sleep can affect your memory.",
+    "translation": "睡眠会影响你的记忆力。"
+  },
+  "afford": {
+    "word": "afford",
+    "phonetic": "/əˈfɔːd/",
+    "meaning": "v. 负担得起",
+    "example": "I cannot afford a new laptop now.",
+    "translation": "我现在买不起一台新笔记本电脑。"
+  },
+  "agree": {
+    "word": "agree",
+    "phonetic": "/əˈɡriː/",
+    "meaning": "v. 同意",
+    "example": "We agree on the main idea.",
+    "translation": "我们对主要观点意见一致。"
+  },
+  "allow": {
+    "word": "allow",
+    "phonetic": "/əˈlaʊ/",
+    "meaning": "v. 允许",
+    "example": "The library allows students to borrow five books.",
+    "translation": "图书馆允许学生借五本书。"
+  },
+  "although": {
+    "word": "although",
+    "phonetic": "/ɔːlˈðəʊ/",
+    "meaning": "conj. 虽然；尽管",
+    "example": "Although it rained, we still went out.",
+    "translation": "虽然下雨了，我们还是出门了。"
+  },
+  "amount": {
+    "word": "amount",
+    "phonetic": "/əˈmaʊnt/",
+    "meaning": "n. 数量；总额",
+    "example": "A small amount of practice helps.",
+    "translation": "少量练习也有帮助。"
+  },
+  "ancient": {
+    "word": "ancient",
+    "phonetic": "/ˈeɪnʃənt/",
+    "meaning": "adj. 古代的；古老的",
+    "example": "We visited an ancient temple.",
+    "translation": "我们参观了一座古老的寺庙。"
+  },
+  "appear": {
+    "word": "appear",
+    "phonetic": "/əˈpɪə/",
+    "meaning": "v. 出现；似乎",
+    "example": "A message appeared on the screen.",
+    "translation": "屏幕上出现了一条消息。"
+  },
+  "apply": {
+    "word": "apply",
+    "phonetic": "/əˈplaɪ/",
+    "meaning": "v. 申请；应用",
+    "example": "She will apply for a scholarship.",
+    "translation": "她将申请一项奖学金。"
+  },
+  "argue": {
+    "word": "argue",
+    "phonetic": "/ˈɑːɡjuː/",
+    "meaning": "v. 争论；论证",
+    "example": "They argued about the best solution.",
+    "translation": "他们争论哪种解决办法最好。"
+  },
+  "arrange": {
+    "word": "arrange",
+    "phonetic": "/əˈreɪndʒ/",
+    "meaning": "v. 安排；整理",
+    "example": "We arranged a meeting for Friday.",
+    "translation": "我们安排了周五的会议。"
+  },
+  "arrive": {
+    "word": "arrive",
+    "phonetic": "/əˈraɪv/",
+    "meaning": "v. 到达",
+    "example": "Please arrive ten minutes early.",
+    "translation": "请提前十分钟到达。"
+  },
+  "attention": {
+    "word": "attention",
+    "phonetic": "/əˈtenʃən/",
+    "meaning": "n. 注意；关注",
+    "example": "Pay attention to the first sentence.",
+    "translation": "注意第一句话。"
+  },
+  "avoid": {
+    "word": "avoid",
+    "phonetic": "/əˈvɔɪd/",
+    "meaning": "v. 避免；避开",
+    "example": "Try to avoid making the same mistake.",
+    "translation": "尽量避免犯同样的错误。"
+  },
+  "balance": {
+    "word": "balance",
+    "phonetic": "/ˈbæləns/",
+    "meaning": "n. 平衡；v. 平衡",
+    "example": "Find a balance between work and rest.",
+    "translation": "在工作和休息之间找到平衡。"
+  },
+  "basic": {
+    "word": "basic",
+    "phonetic": "/ˈbeɪsɪk/",
+    "meaning": "adj. 基本的；基础的",
+    "example": "We learned some basic phrases.",
+    "translation": "我们学了一些基础短语。"
+  },
+  "benefit": {
+    "word": "benefit",
+    "phonetic": "/ˈbenɪfɪt/",
+    "meaning": "n. 好处；v. 受益",
+    "example": "Regular exercise has many benefits.",
+    "translation": "经常锻炼有很多好处。"
+  },
+  "borrow": {
+    "word": "borrow",
+    "phonetic": "/ˈbɒrəʊ/",
+    "meaning": "v. 借入",
+    "example": "May I borrow your pen?",
+    "translation": "我可以借用你的笔吗？"
+  },
+  "brave": {
+    "word": "brave",
+    "phonetic": "/breɪv/",
+    "meaning": "adj. 勇敢的",
+    "example": "It was brave of you to ask for help.",
+    "translation": "你主动求助很勇敢。"
+  },
+  "calm": {
+    "word": "calm",
+    "phonetic": "/kɑːm/",
+    "meaning": "adj. 平静的；v. 使平静",
+    "example": "Take a deep breath and stay calm.",
+    "translation": "深呼吸，保持平静。"
+  },
+  "capital": {
+    "word": "capital",
+    "phonetic": "/ˈkæpɪtəl/",
+    "meaning": "n. 首都；资本",
+    "example": "Beijing is the capital of China.",
+    "translation": "北京是中国的首都。"
+  },
+  "cause": {
+    "word": "cause",
+    "phonetic": "/kɔːz/",
+    "meaning": "n. 原因；v. 引起",
+    "example": "We need to find the cause of the problem.",
+    "translation": "我们需要找出问题的原因。"
+  },
+  "challenge": {
+    "word": "challenge",
+    "phonetic": "/ˈtʃælɪndʒ/",
+    "meaning": "n. 挑战；v. 向……挑战",
+    "example": "Learning a new language is a challenge.",
+    "translation": "学习一门新语言是一项挑战。"
+  },
+  "change": {
+    "word": "change",
+    "phonetic": "/tʃeɪndʒ/",
+    "meaning": "v. 改变；n. 变化",
+    "example": "A small change can make a difference.",
+    "translation": "小小的改变也能带来影响。"
+  },
+  "choice": {
+    "word": "choice",
+    "phonetic": "/tʃɔɪs/",
+    "meaning": "n. 选择",
+    "example": "You have a choice of three courses.",
+    "translation": "你可以从三门课程中选择。"
+  },
+  "collect": {
+    "word": "collect",
+    "phonetic": "/kəˈlekt/",
+    "meaning": "v. 收集",
+    "example": "They collect old postcards.",
+    "translation": "他们收集旧明信片。"
+  },
+  "comfortable": {
+    "word": "comfortable",
+    "phonetic": "/ˈkʌmftəbəl/",
+    "meaning": "adj. 舒适的；自在的",
+    "example": "This chair is very comfortable.",
+    "translation": "这把椅子很舒适。"
+  },
+  "common": {
+    "word": "common",
+    "phonetic": "/ˈkɒmən/",
+    "meaning": "adj. 常见的；共同的",
+    "example": "This is a common spelling mistake.",
+    "translation": "这是一个常见的拼写错误。"
+  },
+  "compare": {
+    "word": "compare",
+    "phonetic": "/kəmˈpeə/",
+    "meaning": "v. 比较",
+    "example": "Compare the two answers carefully.",
+    "translation": "仔细比较这两个答案。"
+  },
+  "complete": {
+    "word": "complete",
+    "phonetic": "/kəmˈpliːt/",
+    "meaning": "v. 完成；adj. 完整的",
+    "example": "I completed the task before lunch.",
+    "translation": "我在午饭前完成了任务。"
+  },
+  "consider": {
+    "word": "consider",
+    "phonetic": "/kənˈsɪdə/",
+    "meaning": "v. 考虑；认为",
+    "example": "Please consider both sides of the question.",
+    "translation": "请考虑这个问题的两个方面。"
+  },
+  "continue": {
+    "word": "continue",
+    "phonetic": "/kənˈtɪnjuː/",
+    "meaning": "v. 继续",
+    "example": "We will continue the lesson tomorrow.",
+    "translation": "我们明天继续这节课。"
+  },
+  "create": {
+    "word": "create",
+    "phonetic": "/kriˈeɪt/",
+    "meaning": "v. 创造；创建",
+    "example": "The students created a small garden.",
+    "translation": "学生们建了一个小花园。"
+  },
+  "culture": {
+    "word": "culture",
+    "phonetic": "/ˈkʌltʃə/",
+    "meaning": "n. 文化",
+    "example": "Food is part of local culture.",
+    "translation": "食物是当地文化的一部分。"
+  },
+  "custom": {
+    "word": "custom",
+    "phonetic": "/ˈkʌstəm/",
+    "meaning": "n. 风俗；习惯",
+    "example": "It is a local custom to share food.",
+    "translation": "分享食物是当地的风俗。"
+  },
+  "decide": {
+    "word": "decide",
+    "phonetic": "/dɪˈsaɪd/",
+    "meaning": "v. 决定",
+    "example": "We decided to walk home.",
+    "translation": "我们决定步行回家。"
+  },
+  "develop": {
+    "word": "develop",
+    "phonetic": "/dɪˈveləp/",
+    "meaning": "v. 发展；培养",
+    "example": "Reading helps you develop new ideas.",
+    "translation": "阅读有助于你形成新的想法。"
+  },
+  "difference": {
+    "word": "difference",
+    "phonetic": "/ˈdɪfrəns/",
+    "meaning": "n. 差别；影响",
+    "example": "There is a clear difference between them.",
+    "translation": "它们之间有明显的差别。"
+  },
+  "difficult": {
+    "word": "difficult",
+    "phonetic": "/ˈdɪfɪkəlt/",
+    "meaning": "adj. 困难的",
+    "example": "The first step is often difficult.",
+    "translation": "第一步往往很难。"
+  },
+  "discover": {
+    "word": "discover",
+    "phonetic": "/dɪˈskʌvə/",
+    "meaning": "v. 发现",
+    "example": "She discovered a quiet place to study.",
+    "translation": "她找到了一处安静的学习场所。"
+  },
+  "discuss": {
+    "word": "discuss",
+    "phonetic": "/dɪˈskʌs/",
+    "meaning": "v. 讨论",
+    "example": "Let us discuss the plan together.",
+    "translation": "让我们一起讨论这个计划。"
+  },
+  "divide": {
+    "word": "divide",
+    "phonetic": "/dɪˈvaɪd/",
+    "meaning": "v. 分开；除",
+    "example": "Divide the work into small tasks.",
+    "translation": "把工作分成几个小任务。"
+  },
+  "doubt": {
+    "word": "doubt",
+    "phonetic": "/daʊt/",
+    "meaning": "n. 怀疑；v. 怀疑",
+    "example": "I have no doubt about her honesty.",
+    "translation": "我对她的诚实毫不怀疑。"
+  },
+  "eager": {
+    "word": "eager",
+    "phonetic": "/ˈiːɡə/",
+    "meaning": "adj. 渴望的；热切的",
+    "example": "He is eager to learn more.",
+    "translation": "他渴望学到更多。"
+  },
+  "effort": {
+    "word": "effort",
+    "phonetic": "/ˈefət/",
+    "meaning": "n. 努力",
+    "example": "Every small effort matters.",
+    "translation": "每一点努力都有意义。"
+  },
+  "encourage": {
+    "word": "encourage",
+    "phonetic": "/ɪnˈkʌrɪdʒ/",
+    "meaning": "v. 鼓励",
+    "example": "My friends encourage me to keep trying.",
+    "translation": "朋友们鼓励我继续尝试。"
+  },
+  "energy": {
+    "word": "energy",
+    "phonetic": "/ˈenədʒi/",
+    "meaning": "n. 能量；精力",
+    "example": "A short break can restore your energy.",
+    "translation": "短暂休息能恢复你的精力。"
+  },
+  "enjoy": {
+    "word": "enjoy",
+    "phonetic": "/ɪnˈdʒɔɪ/",
+    "meaning": "v. 喜欢；享受",
+    "example": "I enjoy reading by the window.",
+    "translation": "我喜欢在窗边阅读。"
+  },
+  "enough": {
+    "word": "enough",
+    "phonetic": "/ɪˈnʌf/",
+    "meaning": "adj. 足够的；adv. 足够地",
+    "example": "We have enough time to finish.",
+    "translation": "我们有足够的时间完成。"
+  },
+  "especially": {
+    "word": "especially",
+    "phonetic": "/ɪˈspeʃəli/",
+    "meaning": "adv. 尤其；特别",
+    "example": "I like fruit, especially oranges.",
+    "translation": "我喜欢水果，尤其是橙子。"
+  },
+  "event": {
+    "word": "event",
+    "phonetic": "/ɪˈvent/",
+    "meaning": "n. 事件；活动",
+    "example": "The school held a music event.",
+    "translation": "学校举办了一场音乐活动。"
+  },
+  "expect": {
+    "word": "expect",
+    "phonetic": "/ɪkˈspekt/",
+    "meaning": "v. 期待；预料",
+    "example": "We expect the train to arrive soon.",
+    "translation": "我们预计火车很快就到。"
+  },
+  "experience": {
+    "word": "experience",
+    "phonetic": "/ɪkˈspɪəriəns/",
+    "meaning": "n. 经验；经历",
+    "example": "This trip was a valuable experience.",
+    "translation": "这次旅行是一次宝贵的经历。"
+  },
+  "explain": {
+    "word": "explain",
+    "phonetic": "/ɪkˈspleɪn/",
+    "meaning": "v. 解释",
+    "example": "Can you explain this word to me?",
+    "translation": "你能向我解释这个单词吗？"
+  },
+  "express": {
+    "word": "express",
+    "phonetic": "/ɪkˈspres/",
+    "meaning": "v. 表达",
+    "example": "She expressed her ideas clearly.",
+    "translation": "她清楚地表达了自己的想法。"
+  },
+  "fail": {
+    "word": "fail",
+    "phonetic": "/feɪl/",
+    "meaning": "v. 失败；未能",
+    "example": "Do not give up if you fail once.",
+    "translation": "失败一次也不要放弃。"
+  },
+  "famous": {
+    "word": "famous",
+    "phonetic": "/ˈfeɪməs/",
+    "meaning": "adj. 著名的",
+    "example": "The town is famous for its tea.",
+    "translation": "这座小镇以茶闻名。"
+  },
+  "feature": {
+    "word": "feature",
+    "phonetic": "/ˈfiːtʃə/",
+    "meaning": "n. 特点；功能",
+    "example": "This feature makes the app easier to use.",
+    "translation": "这个功能让应用更容易使用。"
+  },
+  "finally": {
+    "word": "finally",
+    "phonetic": "/ˈfaɪnəli/",
+    "meaning": "adv. 最后；终于",
+    "example": "We finally found the right answer.",
+    "translation": "我们终于找到了正确答案。"
+  },
+  "flexible": {
+    "word": "flexible",
+    "phonetic": "/ˈfleksəbəl/",
+    "meaning": "adj. 灵活的；柔韧的",
+    "example": "A flexible plan is easier to follow.",
+    "translation": "灵活的计划更容易执行。"
+  },
+  "focus": {
+    "word": "focus",
+    "phonetic": "/ˈfəʊkəs/",
+    "meaning": "v. 集中；n. 焦点",
+    "example": "Focus on one word at a time.",
+    "translation": "每次专注于一个单词。"
+  },
+  "follow": {
+    "word": "follow",
+    "phonetic": "/ˈfɒləʊ/",
+    "meaning": "v. 跟随；遵循",
+    "example": "Follow the instructions on the screen.",
+    "translation": "按照屏幕上的说明操作。"
+  },
+  "foreign": {
+    "word": "foreign",
+    "phonetic": "/ˈfɒrən/",
+    "meaning": "adj. 外国的",
+    "example": "She studies two foreign languages.",
+    "translation": "她学习两门外语。"
+  },
+  "forget": {
+    "word": "forget",
+    "phonetic": "/fəˈɡet/",
+    "meaning": "v. 忘记",
+    "example": "I sometimes forget a new word.",
+    "translation": "我有时会忘记新学的单词。"
+  },
+  "freedom": {
+    "word": "freedom",
+    "phonetic": "/ˈfriːdəm/",
+    "meaning": "n. 自由",
+    "example": "Reading gives us the freedom to explore.",
+    "translation": "阅读让我们能自由探索。"
+  },
+  "friendly": {
+    "word": "friendly",
+    "phonetic": "/ˈfrendli/",
+    "meaning": "adj. 友好的",
+    "example": "The new teacher is friendly.",
+    "translation": "新老师很友好。"
+  },
+  "future": {
+    "word": "future",
+    "phonetic": "/ˈfjuːtʃə/",
+    "meaning": "n. 未来",
+    "example": "Small habits can shape your future.",
+    "translation": "小习惯能够塑造你的未来。"
+  },
+  "goal": {
+    "word": "goal",
+    "phonetic": "/ɡəʊl/",
+    "meaning": "n. 目标",
+    "example": "My goal is to read one page every day.",
+    "translation": "我的目标是每天读一页。"
+  },
+  "habit": {
+    "word": "habit",
+    "phonetic": "/ˈhæbɪt/",
+    "meaning": "n. 习惯",
+    "example": "Reviewing before bed is a useful habit.",
+    "translation": "睡前复习是一个有用的习惯。"
+  },
+  "health": {
+    "word": "health",
+    "phonetic": "/helθ/",
+    "meaning": "n. 健康",
+    "example": "Sleep is important for your health.",
+    "translation": "睡眠对健康很重要。"
+  },
+  "honest": {
+    "word": "honest",
+    "phonetic": "/ˈɒnɪst/",
+    "meaning": "adj. 诚实的",
+    "example": "Be honest about what you remember.",
+    "translation": "如实判断自己记住了什么。"
+  },
+  "improve": {
+    "word": "improve",
+    "phonetic": "/ɪmˈpruːv/",
+    "meaning": "v. 改善；提高",
+    "example": "Your English will improve with practice.",
+    "translation": "你的英语会随着练习而提高。"
+  },
+  "include": {
+    "word": "include",
+    "phonetic": "/ɪnˈkluːd/",
+    "meaning": "v. 包括",
+    "example": "The price includes breakfast.",
+    "translation": "这个价格包含早餐。"
+  },
+  "increase": {
+    "word": "increase",
+    "phonetic": "/ɪnˈkriːs/",
+    "meaning": "v. 增加；增长",
+    "example": "The number of visitors increased.",
+    "translation": "访客数量增加了。"
+  },
+  "influence": {
+    "word": "influence",
+    "phonetic": "/ˈɪnfluəns/",
+    "meaning": "n. 影响；v. 影响",
+    "example": "Her words had a strong influence on me.",
+    "translation": "她的话对我产生了很大影响。"
+  },
+  "information": {
+    "word": "information",
+    "phonetic": "/ˌɪnfəˈmeɪʃən/",
+    "meaning": "n. 信息",
+    "example": "The notice contains useful information.",
+    "translation": "这份通知含有有用的信息。"
+  },
+  "interest": {
+    "word": "interest",
+    "phonetic": "/ˈɪntrəst/",
+    "meaning": "n. 兴趣；v. 使感兴趣",
+    "example": "He has an interest in history.",
+    "translation": "他对历史感兴趣。"
+  },
+  "knowledge": {
+    "word": "knowledge",
+    "phonetic": "/ˈnɒlɪdʒ/",
+    "meaning": "n. 知识",
+    "example": "Reading expands your knowledge.",
+    "translation": "阅读能拓展你的知识。"
+  },
+  "language": {
+    "word": "language",
+    "phonetic": "/ˈlæŋɡwɪdʒ/",
+    "meaning": "n. 语言",
+    "example": "Language connects people.",
+    "translation": "语言将人们联系起来。"
+  },
+  "manage": {
+    "word": "manage",
+    "phonetic": "/ˈmænɪdʒ/",
+    "meaning": "v. 管理；设法做到",
+    "example": "I managed to finish before dinner.",
+    "translation": "我设法在晚饭前完成了。"
+  },
+  "memory": {
+    "word": "memory",
+    "phonetic": "/ˈmeməri/",
+    "meaning": "n. 记忆；记忆力",
+    "example": "A familiar example can help your memory.",
+    "translation": "熟悉的例子能帮助你记忆。"
+  },
+  "method": {
+    "word": "method",
+    "phonetic": "/ˈmeθəd/",
+    "meaning": "n. 方法",
+    "example": "Try a different method of learning.",
+    "translation": "试试另一种学习方法。"
+  },
+  "notice": {
+    "word": "notice",
+    "phonetic": "/ˈnəʊtɪs/",
+    "meaning": "v. 注意到；n. 通知",
+    "example": "I noticed a small change in her voice.",
+    "translation": "我注意到她的声音有一点变化。"
+  },
+  "offer": {
+    "word": "offer",
+    "phonetic": "/ˈɒfə/",
+    "meaning": "v. 提供；n. 提议",
+    "example": "The teacher offered some extra help.",
+    "translation": "老师提供了一些额外帮助。"
+  },
+  "opinion": {
+    "word": "opinion",
+    "phonetic": "/əˈpɪnjən/",
+    "meaning": "n. 意见；看法",
+    "example": "Everyone can share an opinion.",
+    "translation": "每个人都可以分享自己的看法。"
+  },
+  "organize": {
+    "word": "organize",
+    "phonetic": "/ˈɔːɡənaɪz/",
+    "meaning": "v. 组织；整理",
+    "example": "Organize your notes after class.",
+    "translation": "课后整理一下笔记。"
+  },
+  "patient": {
+    "word": "patient",
+    "phonetic": "/ˈpeɪʃənt/",
+    "meaning": "adj. 有耐心的；n. 病人",
+    "example": "Be patient with yourself.",
+    "translation": "对自己耐心一点。"
+  },
+  "prepare": {
+    "word": "prepare",
+    "phonetic": "/prɪˈpeə/",
+    "meaning": "v. 准备",
+    "example": "I prepare my bag the night before.",
+    "translation": "我会在前一天晚上准备好书包。"
+  },
+  "protect": {
+    "word": "protect",
+    "phonetic": "/prəˈtekt/",
+    "meaning": "v. 保护",
+    "example": "These trees protect the soil.",
+    "translation": "这些树木保护着土壤。"
+  },
+  "purpose": {
+    "word": "purpose",
+    "phonetic": "/ˈpɜːpəs/",
+    "meaning": "n. 目的",
+    "example": "What is the purpose of this experiment?",
+    "translation": "这个实验的目的是什么？"
+  },
+  "reason": {
+    "word": "reason",
+    "phonetic": "/ˈriːzən/",
+    "meaning": "n. 原因；理由",
+    "example": "There is a reason for every choice.",
+    "translation": "每个选择都有其理由。"
+  },
+  "receive": {
+    "word": "receive",
+    "phonetic": "/rɪˈsiːv/",
+    "meaning": "v. 收到",
+    "example": "I received a letter this morning.",
+    "translation": "我今天早上收到了一封信。"
+  },
+  "reduce": {
+    "word": "reduce",
+    "phonetic": "/rɪˈdjuːs/",
+    "meaning": "v. 减少；降低",
+    "example": "Walking can help reduce stress.",
+    "translation": "散步有助于减轻压力。"
+  },
+  "remind": {
+    "word": "remind",
+    "phonetic": "/rɪˈmaɪnd/",
+    "meaning": "v. 提醒；使想起",
+    "example": "Please remind me to return the book.",
+    "translation": "请提醒我归还这本书。"
+  },
+  "repeat": {
+    "word": "repeat",
+    "phonetic": "/rɪˈpiːt/",
+    "meaning": "v. 重复",
+    "example": "Could you repeat the last sentence?",
+    "translation": "你能重复最后一句话吗？"
+  },
+  "respect": {
+    "word": "respect",
+    "phonetic": "/rɪˈspekt/",
+    "meaning": "n. 尊重；v. 尊重",
+    "example": "We should respect different opinions.",
+    "translation": "我们应该尊重不同的意见。"
+  },
+  "review": {
+    "word": "review",
+    "phonetic": "/rɪˈvjuː/",
+    "meaning": "v. 复习；审查",
+    "example": "Review these words tomorrow.",
+    "translation": "明天复习这些单词。"
+  },
+  "share": {
+    "word": "share",
+    "phonetic": "/ʃeə/",
+    "meaning": "v. 分享；共用",
+    "example": "Let us share our ideas.",
+    "translation": "让我们分享自己的想法。"
+  },
+  "simple": {
+    "word": "simple",
+    "phonetic": "/ˈsɪmpəl/",
+    "meaning": "adj. 简单的",
+    "example": "Start with a simple sentence.",
+    "translation": "从一个简单句子开始。"
+  },
+  "solve": {
+    "word": "solve",
+    "phonetic": "/sɒlv/",
+    "meaning": "v. 解决",
+    "example": "We solved the problem together.",
+    "translation": "我们一起解决了这个问题。"
+  },
+  "success": {
+    "word": "success",
+    "phonetic": "/səkˈses/",
+    "meaning": "n. 成功",
+    "example": "Success often comes from steady effort.",
+    "translation": "成功往往来自持续的努力。"
+  },
+  "support": {
+    "word": "support",
+    "phonetic": "/səˈpɔːt/",
+    "meaning": "v. 支持；n. 支持",
+    "example": "My family supports my decision.",
+    "translation": "家人支持我的决定。"
+  },
+  "useful": {
+    "word": "useful",
+    "phonetic": "/ˈjuːsfəl/",
+    "meaning": "adj. 有用的",
+    "example": "This is a useful way to remember words.",
+    "translation": "这是一种有用的记词方法。"
+  },
+  "value": {
+    "word": "value",
+    "phonetic": "/ˈvæljuː/",
+    "meaning": "n. 价值；v. 珍视",
+    "example": "We value your time.",
+    "translation": "我们珍惜你的时间。"
+  },
+  "various": {
+    "word": "various",
+    "phonetic": "/ˈveəriəs/",
+    "meaning": "adj. 各种各样的",
+    "example": "The library offers various books.",
+    "translation": "图书馆提供各种书籍。"
+  },
+  "accelerate": {
+    "word": "accelerate",
+    "phonetic": "/əkˈseləreɪt/",
+    "meaning": "v. 加速；促进",
+    "example": "Better tools can accelerate the work.",
+    "translation": "更好的工具能加快工作进度。"
+  },
+  "accommodate": {
+    "word": "accommodate",
+    "phonetic": "/əˈkɒmədeɪt/",
+    "meaning": "v. 容纳；为……提供住宿",
+    "example": "The hall can accommodate two hundred people.",
+    "translation": "这个大厅能容纳两百人。"
+  },
+  "accumulate": {
+    "word": "accumulate",
+    "phonetic": "/əˈkjuːmjəleɪt/",
+    "meaning": "v. 积累",
+    "example": "Small improvements accumulate over time.",
+    "translation": "小小的进步会随着时间积累。"
+  },
+  "acknowledge": {
+    "word": "acknowledge",
+    "phonetic": "/əkˈnɒlɪdʒ/",
+    "meaning": "v. 承认；表示感谢",
+    "example": "She acknowledged that the task was difficult.",
+    "translation": "她承认这项任务很难。"
+  },
+  "adequate": {
+    "word": "adequate",
+    "phonetic": "/ˈædɪkwət/",
+    "meaning": "adj. 足够的；适当的",
+    "example": "We need adequate time for discussion.",
+    "translation": "我们需要足够的时间讨论。"
+  },
+  "advocate": {
+    "word": "advocate",
+    "phonetic": "/ˈædvəkeɪt/",
+    "meaning": "v. 提倡；支持",
+    "example": "They advocate using public transport.",
+    "translation": "他们提倡使用公共交通。"
+  },
+  "allocate": {
+    "word": "allocate",
+    "phonetic": "/ˈæləkeɪt/",
+    "meaning": "v. 分配",
+    "example": "We allocated an hour to reading.",
+    "translation": "我们分配了一个小时来阅读。"
+  },
+  "ambiguous": {
+    "word": "ambiguous",
+    "phonetic": "/æmˈbɪɡjuəs/",
+    "meaning": "adj. 含糊的；有歧义的",
+    "example": "The instruction was too ambiguous.",
+    "translation": "这条说明太含糊了。"
+  },
+  "anticipate": {
+    "word": "anticipate",
+    "phonetic": "/ænˈtɪsɪpeɪt/",
+    "meaning": "v. 预期；预见",
+    "example": "We anticipate a busy week.",
+    "translation": "我们预计这会是忙碌的一周。"
+  },
+  "approximately": {
+    "word": "approximately",
+    "phonetic": "/əˈprɒksɪmətli/",
+    "meaning": "adv. 大约",
+    "example": "The journey takes approximately two hours.",
+    "translation": "这段路程大约需要两个小时。"
+  },
+  "arbitrary": {
+    "word": "arbitrary",
+    "phonetic": "/ˈɑːbɪtrəri/",
+    "meaning": "adj. 任意的；武断的",
+    "example": "The limit was an arbitrary choice.",
+    "translation": "这个限制是随意决定的。"
+  },
+  "assess": {
+    "word": "assess",
+    "phonetic": "/əˈses/",
+    "meaning": "v. 评估",
+    "example": "The team assessed the possible risks.",
+    "translation": "团队评估了可能的风险。"
+  },
+  "assumption": {
+    "word": "assumption",
+    "phonetic": "/əˈsʌmpʃən/",
+    "meaning": "n. 假设；想当然的看法",
+    "example": "We should test that assumption.",
+    "translation": "我们应该检验这个假设。"
+  },
+  "attribute": {
+    "word": "attribute",
+    "phonetic": "/əˈtrɪbjuːt/",
+    "meaning": "v. 把……归因于",
+    "example": "She attributed her progress to regular practice.",
+    "translation": "她把进步归因于经常练习。"
+  },
+  "coherent": {
+    "word": "coherent",
+    "phonetic": "/kəʊˈhɪərənt/",
+    "meaning": "adj. 连贯的；条理清楚的",
+    "example": "His essay presents a coherent argument.",
+    "translation": "他的文章提出了条理清楚的论证。"
+  },
+  "collaborate": {
+    "word": "collaborate",
+    "phonetic": "/kəˈlæbəreɪt/",
+    "meaning": "v. 合作",
+    "example": "Students collaborated on the project.",
+    "translation": "学生们合作完成了这个项目。"
+  },
+  "compensate": {
+    "word": "compensate",
+    "phonetic": "/ˈkɒmpenseɪt/",
+    "meaning": "v. 补偿；弥补",
+    "example": "Extra practice can compensate for lost time.",
+    "translation": "额外练习能弥补失去的时间。"
+  },
+  "comprehensive": {
+    "word": "comprehensive",
+    "phonetic": "/ˌkɒmprɪˈhensɪv/",
+    "meaning": "adj. 全面的；综合的",
+    "example": "The report gives a comprehensive overview.",
+    "translation": "这份报告给出了全面的概述。"
+  },
+  "consecutive": {
+    "word": "consecutive",
+    "phonetic": "/kənˈsekjətɪv/",
+    "meaning": "adj. 连续的",
+    "example": "It rained for three consecutive days.",
+    "translation": "雨连续下了三天。"
+  },
+  "constrain": {
+    "word": "constrain",
+    "phonetic": "/kənˈstreɪn/",
+    "meaning": "v. 限制；约束",
+    "example": "A small budget can constrain our choices.",
+    "translation": "有限的预算会限制我们的选择。"
+  },
+  "contradict": {
+    "word": "contradict",
+    "phonetic": "/ˌkɒntrəˈdɪkt/",
+    "meaning": "v. 与……矛盾；反驳",
+    "example": "The new evidence contradicts the old theory.",
+    "translation": "新证据与旧理论相矛盾。"
+  },
+  "conventional": {
+    "word": "conventional",
+    "phonetic": "/kənˈvenʃənəl/",
+    "meaning": "adj. 传统的；常规的",
+    "example": "They used a conventional teaching method.",
+    "translation": "他们采用了传统的教学方法。"
+  },
+  "coordinate": {
+    "word": "coordinate",
+    "phonetic": "/kəʊˈɔːdɪneɪt/",
+    "meaning": "v. 协调",
+    "example": "One person will coordinate the schedule.",
+    "translation": "将由一人协调日程。"
+  },
+  "crucial": {
+    "word": "crucial",
+    "phonetic": "/ˈkruːʃəl/",
+    "meaning": "adj. 至关重要的",
+    "example": "Clear instructions are crucial for this task.",
+    "translation": "清晰的说明对这项任务至关重要。"
+  },
+  "decline": {
+    "word": "decline",
+    "phonetic": "/dɪˈklaɪn/",
+    "meaning": "v. 下降；婉拒",
+    "example": "The number of errors declined.",
+    "translation": "错误数量减少了。"
+  },
+  "dedicate": {
+    "word": "dedicate",
+    "phonetic": "/ˈdedɪkeɪt/",
+    "meaning": "v. 致力于；把……用于",
+    "example": "She dedicates an hour a day to music.",
+    "translation": "她每天花一小时在音乐上。"
+  },
+  "deliberate": {
+    "word": "deliberate",
+    "phonetic": "/dɪˈlɪbərət/",
+    "meaning": "adj. 故意的；慎重的",
+    "example": "This was a deliberate decision.",
+    "translation": "这是一个经过慎重考虑的决定。"
+  },
+  "demonstrate": {
+    "word": "demonstrate",
+    "phonetic": "/ˈdemənstreɪt/",
+    "meaning": "v. 展示；证明",
+    "example": "The teacher demonstrated the process.",
+    "translation": "老师演示了这个过程。"
+  },
+  "diminish": {
+    "word": "diminish",
+    "phonetic": "/dɪˈmɪnɪʃ/",
+    "meaning": "v. 减少；减弱",
+    "example": "The noise gradually diminished.",
+    "translation": "噪声逐渐减弱了。"
+  },
+  "discriminate": {
+    "word": "discriminate",
+    "phonetic": "/dɪˈskrɪmɪneɪt/",
+    "meaning": "v. 区分；歧视",
+    "example": "The test can discriminate between the two sounds.",
+    "translation": "这个测试能区分这两种声音。"
+  },
+  "diverse": {
+    "word": "diverse",
+    "phonetic": "/daɪˈvɜːs/",
+    "meaning": "adj. 多种多样的",
+    "example": "The class has diverse interests.",
+    "translation": "班里同学的兴趣多种多样。"
+  },
+  "elaborate": {
+    "word": "elaborate",
+    "phonetic": "/ɪˈlæbərət/",
+    "meaning": "adj. 精心制作的；复杂的",
+    "example": "The room had an elaborate decoration.",
+    "translation": "房间里有精心制作的装饰。"
+  },
+  "enhance": {
+    "word": "enhance",
+    "phonetic": "/ɪnˈhɑːns/",
+    "meaning": "v. 提高；增强",
+    "example": "Good examples enhance understanding.",
+    "translation": "好的例子能增强理解。"
+  },
+  "establish": {
+    "word": "establish",
+    "phonetic": "/ɪˈstæblɪʃ/",
+    "meaning": "v. 建立；确立",
+    "example": "We established a regular study routine.",
+    "translation": "我们建立了固定的学习习惯。"
+  },
+  "evaluate": {
+    "word": "evaluate",
+    "phonetic": "/ɪˈvæljueɪt/",
+    "meaning": "v. 评价；评估",
+    "example": "Evaluate the result before changing the plan.",
+    "translation": "调整计划前先评估结果。"
+  },
+  "evident": {
+    "word": "evident",
+    "phonetic": "/ˈevɪdənt/",
+    "meaning": "adj. 明显的",
+    "example": "Her progress was evident in the final test.",
+    "translation": "她的进步在期末测试中很明显。"
+  },
+  "facilitate": {
+    "word": "facilitate",
+    "phonetic": "/fəˈsɪlɪteɪt/",
+    "meaning": "v. 促进；使便利",
+    "example": "A clear map facilitates navigation.",
+    "translation": "清晰的地图让找路更方便。"
+  },
+  "fluctuate": {
+    "word": "fluctuate",
+    "phonetic": "/ˈflʌktʃueɪt/",
+    "meaning": "v. 波动",
+    "example": "Prices fluctuate throughout the year.",
+    "translation": "价格全年都在波动。"
+  },
+  "fundamental": {
+    "word": "fundamental",
+    "phonetic": "/ˌfʌndəˈmentəl/",
+    "meaning": "adj. 基本的；根本的",
+    "example": "Trust is fundamental to teamwork.",
+    "translation": "信任是团队合作的基础。"
+  },
+  "implement": {
+    "word": "implement",
+    "phonetic": "/ˈɪmplɪment/",
+    "meaning": "v. 实施；执行",
+    "example": "The school implemented a new policy.",
+    "translation": "学校实施了一项新政策。"
+  },
+  "inevitable": {
+    "word": "inevitable",
+    "phonetic": "/ɪnˈevɪtəbəl/",
+    "meaning": "adj. 不可避免的",
+    "example": "Some mistakes are inevitable when learning.",
+    "translation": "学习时有些错误难以避免。"
+  },
+  "integrate": {
+    "word": "integrate",
+    "phonetic": "/ˈɪntɪɡreɪt/",
+    "meaning": "v. 使结合；融入",
+    "example": "We integrated the feedback into the design.",
+    "translation": "我们把反馈融入了设计。"
+  },
+  "justify": {
+    "word": "justify",
+    "phonetic": "/ˈdʒʌstɪfaɪ/",
+    "meaning": "v. 证明……合理",
+    "example": "The results justify the extra effort.",
+    "translation": "结果说明额外的努力是值得的。"
+  },
+  "maintain": {
+    "word": "maintain",
+    "phonetic": "/meɪnˈteɪn/",
+    "meaning": "v. 保持；维护",
+    "example": "Maintain a steady pace.",
+    "translation": "保持稳定的节奏。"
+  },
+  "nevertheless": {
+    "word": "nevertheless",
+    "phonetic": "/ˌnevəðəˈles/",
+    "meaning": "adv. 尽管如此；然而",
+    "example": "It was difficult; nevertheless, we finished.",
+    "translation": "虽然很难，我们还是完成了。"
+  },
+  "precise": {
+    "word": "precise",
+    "phonetic": "/prɪˈsaɪs/",
+    "meaning": "adj. 精确的",
+    "example": "Give a precise description of the problem.",
+    "translation": "准确描述这个问题。"
+  },
+  "retain": {
+    "word": "retain",
+    "phonetic": "/rɪˈteɪn/",
+    "meaning": "v. 保留；记住",
+    "example": "Frequent review helps us retain information.",
+    "translation": "经常复习有助于我们记住信息。"
+  },
+  "rigorous": {
+    "word": "rigorous",
+    "phonetic": "/ˈrɪɡərəs/",
+    "meaning": "adj. 严格的；严谨的",
+    "example": "The study used a rigorous method.",
+    "translation": "这项研究采用了严谨的方法。"
+  },
+  "substantial": {
+    "word": "substantial",
+    "phonetic": "/səbˈstænʃəl/",
+    "meaning": "adj. 大量的；显著的",
+    "example": "The project requires substantial effort.",
+    "translation": "这个项目需要大量努力。"
+  },
+  "vivid": {
+    "word": "vivid",
+    "phonetic": "/ˈvɪvɪd/",
+    "meaning": "adj. 生动的；鲜明的",
+    "example": "Her description gave us a vivid picture.",
+    "translation": "她的描述让我们有了生动的印象。"
+  },
+  "abstract": {
+    "word": "abstract",
+    "phonetic": "/ˈæbstrækt/",
+    "meaning": "adj. 抽象的；n. 摘要",
+    "example": "The idea is too abstract for a simple example.",
+    "translation": "这个想法太抽象，难以用简单的例子说明。"
+  },
+  "acquire": {
+    "word": "acquire",
+    "phonetic": "/əˈkwaɪə/",
+    "meaning": "v. 获得；习得",
+    "example": "Children acquire language through interaction.",
+    "translation": "儿童通过互动习得语言。"
+  },
+  "alleviate": {
+    "word": "alleviate",
+    "phonetic": "/əˈliːvieɪt/",
+    "meaning": "v. 缓解；减轻",
+    "example": "A short walk may alleviate stress.",
+    "translation": "短暂散步可能缓解压力。"
+  },
+  "analogy": {
+    "word": "analogy",
+    "phonetic": "/əˈnælədʒi/",
+    "meaning": "n. 类比",
+    "example": "She used an analogy to explain the system.",
+    "translation": "她用一个类比来解释这个系统。"
+  },
+  "analyze": {
+    "word": "analyze",
+    "phonetic": "/ˈænəlaɪz/",
+    "meaning": "v. 分析",
+    "example": "We analyzed the survey results.",
+    "translation": "我们分析了调查结果。"
+  },
+  "approach": {
+    "word": "approach",
+    "phonetic": "/əˈprəʊtʃ/",
+    "meaning": "n. 方法；v. 接近",
+    "example": "This approach works well for beginners.",
+    "translation": "这种方法很适合初学者。"
+  },
+  "aspect": {
+    "word": "aspect",
+    "phonetic": "/ˈæspekt/",
+    "meaning": "n. 方面",
+    "example": "We considered every aspect of the problem.",
+    "translation": "我们考虑了这个问题的每一个方面。"
+  },
+  "authority": {
+    "word": "authority",
+    "phonetic": "/ɔːˈθɒrəti/",
+    "meaning": "n. 权威；职权",
+    "example": "The committee has the authority to decide.",
+    "translation": "委员会有权作出决定。"
+  },
+  "autonomy": {
+    "word": "autonomy",
+    "phonetic": "/ɔːˈtɒnəmi/",
+    "meaning": "n. 自主权；自主性",
+    "example": "Students need some autonomy in learning.",
+    "translation": "学生在学习中需要一定的自主性。"
+  },
+  "bias": {
+    "word": "bias",
+    "phonetic": "/ˈbaɪəs/",
+    "meaning": "n. 偏见；偏差",
+    "example": "The sample may contain a selection bias.",
+    "translation": "这个样本可能存在选择偏差。"
+  },
+  "capacity": {
+    "word": "capacity",
+    "phonetic": "/kəˈpæsəti/",
+    "meaning": "n. 能力；容量",
+    "example": "The battery has a larger capacity.",
+    "translation": "这块电池的容量更大。"
+  },
+  "circumstance": {
+    "word": "circumstance",
+    "phonetic": "/ˈsɜːkəmstəns/",
+    "meaning": "n. 情况；环境",
+    "example": "We must adapt to changing circumstances.",
+    "translation": "我们必须适应不断变化的情况。"
+  },
+  "cognitive": {
+    "word": "cognitive",
+    "phonetic": "/ˈkɒɡnətɪv/",
+    "meaning": "adj. 认知的",
+    "example": "The task measures cognitive skills.",
+    "translation": "这项任务测量认知能力。"
+  },
+  "consensus": {
+    "word": "consensus",
+    "phonetic": "/kənˈsensəs/",
+    "meaning": "n. 共识",
+    "example": "The team reached a consensus on the plan.",
+    "translation": "团队对计划达成了共识。"
+  },
+  "consequence": {
+    "word": "consequence",
+    "phonetic": "/ˈkɒnsɪkwəns/",
+    "meaning": "n. 结果；后果",
+    "example": "Every decision has a consequence.",
+    "translation": "每个决定都会产生结果。"
+  },
+  "context": {
+    "word": "context",
+    "phonetic": "/ˈkɒntekst/",
+    "meaning": "n. 语境；背景",
+    "example": "The meaning becomes clear in context.",
+    "translation": "结合语境，意思就清楚了。"
+  },
+  "correlation": {
+    "word": "correlation",
+    "phonetic": "/ˌkɒrəˈleɪʃən/",
+    "meaning": "n. 相关性",
+    "example": "The study found a correlation between the variables.",
+    "translation": "研究发现这些变量之间存在相关性。"
+  },
+  "criterion": {
+    "word": "criterion",
+    "phonetic": "/kraɪˈtɪəriən/",
+    "meaning": "n. 标准；准则",
+    "example": "Cost is only one criterion for the choice.",
+    "translation": "费用只是作出选择的一个标准。"
+  },
+  "deduce": {
+    "word": "deduce",
+    "phonetic": "/dɪˈdjuːs/",
+    "meaning": "v. 推断；演绎",
+    "example": "We can deduce the answer from these clues.",
+    "translation": "我们可以根据这些线索推断答案。"
+  },
+  "derive": {
+    "word": "derive",
+    "phonetic": "/dɪˈraɪv/",
+    "meaning": "v. 获得；起源于",
+    "example": "The term derives from an old word.",
+    "translation": "这个术语源自一个古老的词。"
+  },
+  "dimension": {
+    "word": "dimension",
+    "phonetic": "/daɪˈmenʃən/",
+    "meaning": "n. 维度；方面",
+    "example": "Time adds another dimension to the analysis.",
+    "translation": "时间为分析增加了另一个维度。"
+  },
+  "distribute": {
+    "word": "distribute",
+    "phonetic": "/dɪˈstrɪbjuːt/",
+    "meaning": "v. 分发；分配",
+    "example": "The teacher distributed the reading materials.",
+    "translation": "老师分发了阅读材料。"
+  },
+  "empirical": {
+    "word": "empirical",
+    "phonetic": "/ɪmˈpɪrɪkəl/",
+    "meaning": "adj. 以观察或实验为依据的",
+    "example": "The theory needs empirical evidence.",
+    "translation": "这个理论需要实证证据。"
+  },
+  "equivalent": {
+    "word": "equivalent",
+    "phonetic": "/ɪˈkwɪvələnt/",
+    "meaning": "adj. 等同的；等值的",
+    "example": "The two expressions are equivalent.",
+    "translation": "这两种表达是等同的。"
+  },
+  "ethics": {
+    "word": "ethics",
+    "phonetic": "/ˈeθɪks/",
+    "meaning": "n. 伦理；道德原则",
+    "example": "Research ethics protect the participants.",
+    "translation": "研究伦理保护参与者。"
+  },
+  "exceed": {
+    "word": "exceed",
+    "phonetic": "/ɪkˈsiːd/",
+    "meaning": "v. 超过",
+    "example": "The cost must not exceed our budget.",
+    "translation": "费用不能超过预算。"
+  },
+  "explicit": {
+    "word": "explicit",
+    "phonetic": "/ɪkˈsplɪsɪt/",
+    "meaning": "adj. 明确的；直言的",
+    "example": "The rules need to be explicit.",
+    "translation": "规则需要明确。"
+  },
+  "framework": {
+    "word": "framework",
+    "phonetic": "/ˈfreɪmwɜːk/",
+    "meaning": "n. 框架；体系",
+    "example": "The report provides a framework for discussion.",
+    "translation": "报告为讨论提供了一个框架。"
+  },
+  "hypothesis": {
+    "word": "hypothesis",
+    "phonetic": "/haɪˈpɒθəsɪs/",
+    "meaning": "n. 假设",
+    "example": "The experiment tested a new hypothesis.",
+    "translation": "这个实验检验了一个新假设。"
+  },
+  "implication": {
+    "word": "implication",
+    "phonetic": "/ˌɪmplɪˈkeɪʃən/",
+    "meaning": "n. 可能的影响；含意",
+    "example": "Consider the wider implications of this change.",
+    "translation": "考虑一下这种变化更广泛的影响。"
+  },
+  "incentive": {
+    "word": "incentive",
+    "phonetic": "/ɪnˈsentɪv/",
+    "meaning": "n. 激励；诱因",
+    "example": "The program offers an incentive to save energy.",
+    "translation": "这个项目提供节约能源的激励。"
+  },
+  "infer": {
+    "word": "infer",
+    "phonetic": "/ɪnˈfɜː/",
+    "meaning": "v. 推断",
+    "example": "We can infer his meaning from the example.",
+    "translation": "我们可以根据这个例子推断他的意思。"
+  },
+  "innovation": {
+    "word": "innovation",
+    "phonetic": "/ˌɪnəˈveɪʃən/",
+    "meaning": "n. 创新",
+    "example": "Innovation can begin with a small idea.",
+    "translation": "创新可以从一个小想法开始。"
+  },
+  "insight": {
+    "word": "insight",
+    "phonetic": "/ˈɪnsaɪt/",
+    "meaning": "n. 洞察；深入理解",
+    "example": "The interview gave us insight into student life.",
+    "translation": "这次访谈让我们深入了解了学生生活。"
+  },
+  "interpret": {
+    "word": "interpret",
+    "phonetic": "/ɪnˈtɜːprɪt/",
+    "meaning": "v. 解释；理解；口译",
+    "example": "Different readers may interpret the poem differently.",
+    "translation": "不同读者可能对这首诗有不同理解。"
+  },
+  "logical": {
+    "word": "logical",
+    "phonetic": "/ˈlɒdʒɪkəl/",
+    "meaning": "adj. 合乎逻辑的",
+    "example": "The conclusion follows a logical argument.",
+    "translation": "这个结论来自合乎逻辑的论证。"
+  },
+  "mechanism": {
+    "word": "mechanism",
+    "phonetic": "/ˈmekənɪzəm/",
+    "meaning": "n. 机制；机械装置",
+    "example": "The study explores the mechanism of learning.",
+    "translation": "这项研究探索学习的机制。"
+  },
+  "objective": {
+    "word": "objective",
+    "phonetic": "/əbˈdʒektɪv/",
+    "meaning": "adj. 客观的；n. 目标",
+    "example": "We need an objective assessment.",
+    "translation": "我们需要客观的评估。"
+  },
+  "perspective": {
+    "word": "perspective",
+    "phonetic": "/pəˈspektɪv/",
+    "meaning": "n. 视角；观点",
+    "example": "Try to see the issue from another perspective.",
+    "translation": "试着从另一个视角看这个问题。"
+  },
+  "phenomenon": {
+    "word": "phenomenon",
+    "phonetic": "/fəˈnɒmɪnən/",
+    "meaning": "n. 现象",
+    "example": "The researchers observed an unusual phenomenon.",
+    "translation": "研究人员观察到了一种不寻常的现象。"
+  },
+  "potential": {
+    "word": "potential",
+    "phonetic": "/pəˈtenʃəl/",
+    "meaning": "adj. 潜在的；n. 潜力",
+    "example": "The idea has great potential.",
+    "translation": "这个想法很有潜力。"
+  },
+  "priority": {
+    "word": "priority",
+    "phonetic": "/praɪˈɒrəti/",
+    "meaning": "n. 优先事项；优先权",
+    "example": "Safety is our first priority.",
+    "translation": "安全是我们的首要事项。"
+  },
+  "rational": {
+    "word": "rational",
+    "phonetic": "/ˈræʃənəl/",
+    "meaning": "adj. 理性的；合理的",
+    "example": "They made a rational choice.",
+    "translation": "他们作出了理性的选择。"
+  },
+  "relevant": {
+    "word": "relevant",
+    "phonetic": "/ˈreləvənt/",
+    "meaning": "adj. 相关的；切题的",
+    "example": "Only include information relevant to the topic.",
+    "translation": "只包含与主题相关的信息。"
+  },
+  "reliable": {
+    "word": "reliable",
+    "phonetic": "/rɪˈlaɪəbəl/",
+    "meaning": "adj. 可靠的",
+    "example": "We need a reliable source of information.",
+    "translation": "我们需要可靠的信息来源。"
+  },
+  "sequence": {
+    "word": "sequence",
+    "phonetic": "/ˈsiːkwəns/",
+    "meaning": "n. 顺序；一连串",
+    "example": "Put the events in the correct sequence.",
+    "translation": "把这些事件按正确顺序排列。"
+  },
+  "significant": {
+    "word": "significant",
+    "phonetic": "/sɪɡˈnɪfɪkənt/",
+    "meaning": "adj. 显著的；重要的",
+    "example": "The change had a significant effect.",
+    "translation": "这个变化产生了显著影响。"
+  },
+  "strategy": {
+    "word": "strategy",
+    "phonetic": "/ˈstrætədʒi/",
+    "meaning": "n. 策略",
+    "example": "We need a strategy for managing time.",
+    "translation": "我们需要一套管理时间的策略。"
+  },
+  "theory": {
+    "word": "theory",
+    "phonetic": "/ˈθɪəri/",
+    "meaning": "n. 理论",
+    "example": "The evidence supports this theory.",
+    "translation": "这些证据支持这个理论。"
+  },
+  "valid": {
+    "word": "valid",
+    "phonetic": "/ˈvælɪd/",
+    "meaning": "adj. 有效的；有根据的",
+    "example": "Her criticism is valid.",
+    "translation": "她的批评有根据。"
+  },
+  "accommodation": {
+    "word": "accommodation",
+    "phonetic": "/əˌkɒməˈdeɪʃən/",
+    "meaning": "n. 住宿；住处",
+    "example": "The university provides student accommodation.",
+    "translation": "大学提供学生住宿。"
+  },
+  "agriculture": {
+    "word": "agriculture",
+    "phonetic": "/ˈæɡrɪkʌltʃə/",
+    "meaning": "n. 农业",
+    "example": "Agriculture is important to the local economy.",
+    "translation": "农业对当地经济很重要。"
+  },
+  "alternative": {
+    "word": "alternative",
+    "phonetic": "/ɔːlˈtɜːnətɪv/",
+    "meaning": "n. 替代选择；adj. 可供替代的",
+    "example": "Cycling is an alternative to driving.",
+    "translation": "骑自行车是开车以外的一种选择。"
+  },
+  "amenity": {
+    "word": "amenity",
+    "phonetic": "/əˈmiːnəti/",
+    "meaning": "n. 便利设施",
+    "example": "The neighborhood has many useful amenities.",
+    "translation": "这个社区有许多便利设施。"
+  },
+  "biodiversity": {
+    "word": "biodiversity",
+    "phonetic": "/ˌbaɪəʊdaɪˈvɜːsəti/",
+    "meaning": "n. 生物多样性",
+    "example": "Forests support rich biodiversity.",
+    "translation": "森林孕育着丰富的生物多样性。"
+  },
+  "commute": {
+    "word": "commute",
+    "phonetic": "/kəˈmjuːt/",
+    "meaning": "v. 通勤；n. 通勤路程",
+    "example": "I commute by train every weekday.",
+    "translation": "我每个工作日坐火车通勤。"
+  },
+  "congestion": {
+    "word": "congestion",
+    "phonetic": "/kənˈdʒestʃən/",
+    "meaning": "n. 拥堵",
+    "example": "The new bus route may reduce congestion.",
+    "translation": "新的公交线路可能缓解拥堵。"
+  },
+  "conservation": {
+    "word": "conservation",
+    "phonetic": "/ˌkɒnsəˈveɪʃən/",
+    "meaning": "n. 保护；节约",
+    "example": "Water conservation begins with small habits.",
+    "translation": "节约用水从小习惯开始。"
+  },
+  "consumption": {
+    "word": "consumption",
+    "phonetic": "/kənˈsʌmpʃən/",
+    "meaning": "n. 消耗；消费",
+    "example": "The building has low energy consumption.",
+    "translation": "这栋建筑的能耗较低。"
+  },
+  "curriculum": {
+    "word": "curriculum",
+    "phonetic": "/kəˈrɪkjələm/",
+    "meaning": "n. 课程体系",
+    "example": "The school added art to its curriculum.",
+    "translation": "学校把美术加入了课程体系。"
+  },
+  "destination": {
+    "word": "destination",
+    "phonetic": "/ˌdestɪˈneɪʃən/",
+    "meaning": "n. 目的地",
+    "example": "The island is a popular travel destination.",
+    "translation": "这座岛是热门旅游目的地。"
+  },
+  "disposal": {
+    "word": "disposal",
+    "phonetic": "/dɪˈspəʊzəl/",
+    "meaning": "n. 处理；清除",
+    "example": "Proper waste disposal keeps the river clean.",
+    "translation": "妥善处理废弃物能保持河流清洁。"
+  },
+  "emission": {
+    "word": "emission",
+    "phonetic": "/ɪˈmɪʃən/",
+    "meaning": "n. 排放；排放物",
+    "example": "The policy aims to reduce carbon emissions.",
+    "translation": "这项政策旨在减少碳排放。"
+  },
+  "employment": {
+    "word": "employment",
+    "phonetic": "/ɪmˈplɔɪmənt/",
+    "meaning": "n. 就业；雇用",
+    "example": "Tourism creates local employment.",
+    "translation": "旅游业创造了本地就业机会。"
+  },
+  "environment": {
+    "word": "environment",
+    "phonetic": "/ɪnˈvaɪrənmənt/",
+    "meaning": "n. 环境",
+    "example": "A quiet environment helps me study.",
+    "translation": "安静的环境有助于我学习。"
+  },
+  "essential": {
+    "word": "essential",
+    "phonetic": "/ɪˈsenʃəl/",
+    "meaning": "adj. 必不可少的",
+    "example": "Clean water is essential for life.",
+    "translation": "清洁的水是生命所必需的。"
+  },
+  "expenditure": {
+    "word": "expenditure",
+    "phonetic": "/ɪkˈspendɪtʃə/",
+    "meaning": "n. 支出",
+    "example": "Housing is my largest monthly expenditure.",
+    "translation": "住房是我每月最大的支出。"
+  },
+  "facility": {
+    "word": "facility",
+    "phonetic": "/fəˈsɪləti/",
+    "meaning": "n. 设施",
+    "example": "The campus has a new sports facility.",
+    "translation": "校园里有一处新的体育设施。"
+  },
+  "global": {
+    "word": "global",
+    "phonetic": "/ˈɡləʊbəl/",
+    "meaning": "adj. 全球的",
+    "example": "Climate change is a global issue.",
+    "translation": "气候变化是一个全球性问题。"
+  },
+  "habitat": {
+    "word": "habitat",
+    "phonetic": "/ˈhæbɪtæt/",
+    "meaning": "n. 栖息地",
+    "example": "The wetland is a habitat for many birds.",
+    "translation": "这片湿地是许多鸟类的栖息地。"
+  },
+  "heritage": {
+    "word": "heritage",
+    "phonetic": "/ˈherɪtɪdʒ/",
+    "meaning": "n. 遗产；传统",
+    "example": "The town protects its cultural heritage.",
+    "translation": "这座小镇保护自己的文化遗产。"
+  },
+  "infrastructure": {
+    "word": "infrastructure",
+    "phonetic": "/ˈɪnfrəstrʌktʃə/",
+    "meaning": "n. 基础设施",
+    "example": "The region needs better transport infrastructure.",
+    "translation": "这个地区需要更好的交通基础设施。"
+  },
+  "inhabitant": {
+    "word": "inhabitant",
+    "phonetic": "/ɪnˈhæbɪtənt/",
+    "meaning": "n. 居民；居住者",
+    "example": "The island has fewer than a thousand inhabitants.",
+    "translation": "岛上的居民不到一千人。"
+  },
+  "leisure": {
+    "word": "leisure",
+    "phonetic": "/ˈleʒə/",
+    "meaning": "n. 闲暇",
+    "example": "I read novels in my leisure time.",
+    "translation": "我在闲暇时读小说。"
+  },
+  "migration": {
+    "word": "migration",
+    "phonetic": "/maɪˈɡreɪʃən/",
+    "meaning": "n. 迁移；移居",
+    "example": "The report describes migration from rural areas.",
+    "translation": "这份报告描述了人口从农村迁出的情况。"
+  },
+  "neighborhood": {
+    "word": "neighborhood",
+    "phonetic": "/ˈneɪbəhʊd/",
+    "meaning": "n. 社区；街区",
+    "example": "There is a small park in our neighborhood.",
+    "translation": "我们的社区里有一个小公园。"
+  },
+  "occupation": {
+    "word": "occupation",
+    "phonetic": "/ˌɒkjəˈpeɪʃən/",
+    "meaning": "n. 职业",
+    "example": "Please state your occupation on the form.",
+    "translation": "请在表格中填写你的职业。"
+  },
+  "pedestrian": {
+    "word": "pedestrian",
+    "phonetic": "/pəˈdestriən/",
+    "meaning": "n. 行人；adj. 步行者的",
+    "example": "Pedestrians can cross at these lights.",
+    "translation": "行人可以在这些信号灯处过马路。"
+  },
+  "pollution": {
+    "word": "pollution",
+    "phonetic": "/pəˈluːʃən/",
+    "meaning": "n. 污染",
+    "example": "Air pollution affects large cities.",
+    "translation": "空气污染影响着大城市。"
+  },
+  "population": {
+    "word": "population",
+    "phonetic": "/ˌpɒpjəˈleɪʃən/",
+    "meaning": "n. 人口",
+    "example": "The town has a growing population.",
+    "translation": "这个小镇的人口正在增长。"
+  },
+  "preserve": {
+    "word": "preserve",
+    "phonetic": "/prɪˈzɜːv/",
+    "meaning": "v. 保护；保存",
+    "example": "We should preserve this historic building.",
+    "translation": "我们应该保护这座历史建筑。"
+  },
+  "recycle": {
+    "word": "recycle",
+    "phonetic": "/ˌriːˈsaɪkəl/",
+    "meaning": "v. 回收利用",
+    "example": "We recycle paper and glass.",
+    "translation": "我们回收纸张和玻璃。"
+  },
+  "renewable": {
+    "word": "renewable",
+    "phonetic": "/rɪˈnjuːəbəl/",
+    "meaning": "adj. 可再生的",
+    "example": "The city invests in renewable energy.",
+    "translation": "这座城市投资可再生能源。"
+  },
+  "resource": {
+    "word": "resource",
+    "phonetic": "/rɪˈzɔːs/",
+    "meaning": "n. 资源",
+    "example": "Water is a valuable resource.",
+    "translation": "水是宝贵的资源。"
+  },
+  "rural": {
+    "word": "rural",
+    "phonetic": "/ˈrʊərəl/",
+    "meaning": "adj. 农村的；乡村的",
+    "example": "She grew up in a rural area.",
+    "translation": "她在乡村地区长大。"
+  },
+  "scarce": {
+    "word": "scarce",
+    "phonetic": "/skeəs/",
+    "meaning": "adj. 稀缺的",
+    "example": "Fresh water is scarce on the island.",
+    "translation": "岛上淡水稀缺。"
+  },
+  "sustainable": {
+    "word": "sustainable",
+    "phonetic": "/səˈsteɪnəbəl/",
+    "meaning": "adj. 可持续的",
+    "example": "We need a sustainable way to produce food.",
+    "translation": "我们需要以可持续的方式生产食物。"
+  },
+  "tuition": {
+    "word": "tuition",
+    "phonetic": "/tjuˈɪʃən/",
+    "meaning": "n. 学费；教学",
+    "example": "She saved money for her tuition.",
+    "translation": "她存钱支付学费。"
+  },
+  "urban": {
+    "word": "urban",
+    "phonetic": "/ˈɜːbən/",
+    "meaning": "adj. 城市的",
+    "example": "Urban parks offer space to relax.",
+    "translation": "城市公园提供了放松的空间。"
+  },
+  "volunteer": {
+    "word": "volunteer",
+    "phonetic": "/ˌvɒlənˈtɪə/",
+    "meaning": "n. 志愿者；v. 自愿做",
+    "example": "He volunteers at a community library.",
+    "translation": "他在社区图书馆做志愿服务。"
+  },
+  "wellbeing": {
+    "word": "wellbeing",
+    "phonetic": "/ˌwelˈbiːɪŋ/",
+    "meaning": "n. 健康与幸福",
+    "example": "Outdoor activities can improve wellbeing.",
+    "translation": "户外活动能增进身心健康。"
+  },
+  "widespread": {
+    "word": "widespread",
+    "phonetic": "/ˈwaɪdspred/",
+    "meaning": "adj. 广泛的；普遍的",
+    "example": "The storm caused widespread damage.",
+    "translation": "这场暴风雨造成了大范围破坏。"
+  },
+  "affordable": {
+    "word": "affordable",
+    "phonetic": "/əˈfɔːdəbəl/",
+    "meaning": "adj. 价格可承受的",
+    "example": "Students need affordable housing.",
+    "translation": "学生需要负担得起的住房。"
+  },
+  "appliance": {
+    "word": "appliance",
+    "phonetic": "/əˈplaɪəns/",
+    "meaning": "n. 家用电器",
+    "example": "Turn off the appliance after use.",
+    "translation": "使用后关闭电器。"
+  },
+  "community": {
+    "word": "community",
+    "phonetic": "/kəˈmjuːnəti/",
+    "meaning": "n. 社区；群体",
+    "example": "The community built a shared garden.",
+    "translation": "社区建了一个共享花园。"
+  },
+  "drought": {
+    "word": "drought",
+    "phonetic": "/draʊt/",
+    "meaning": "n. 干旱",
+    "example": "The long drought damaged the crops.",
+    "translation": "长期干旱损害了庄稼。"
+  },
+  "erosion": {
+    "word": "erosion",
+    "phonetic": "/ɪˈrəʊʒən/",
+    "meaning": "n. 侵蚀；流失",
+    "example": "Trees can reduce soil erosion.",
+    "translation": "树木可以减少土壤流失。"
+  },
+  "recreation": {
+    "word": "recreation",
+    "phonetic": "/ˌrekriˈeɪʃən/",
+    "meaning": "n. 娱乐；休闲活动",
+    "example": "The lake is used for recreation.",
+    "translation": "这个湖被用于休闲活动。"
+  },
+  "reservation": {
+    "word": "reservation",
+    "phonetic": "/ˌrezəˈveɪʃən/",
+    "meaning": "n. 预订；保留意见",
+    "example": "I made a reservation for two nights.",
+    "translation": "我预订了两晚住宿。"
+  },
+  "suburb": {
+    "word": "suburb",
+    "phonetic": "/ˈsʌbɜːb/",
+    "meaning": "n. 郊区",
+    "example": "They live in a quiet suburb.",
+    "translation": "他们住在安静的郊区。"
+  },
+  "adaptation": {
+    "word": "adaptation",
+    "phonetic": "/ˌædæpˈteɪʃən/",
+    "meaning": "n. 适应；改编",
+    "example": "Thick fur is an adaptation to cold climates.",
+    "translation": "厚毛皮是对寒冷气候的一种适应。"
+  },
+  "archaeology": {
+    "word": "archaeology",
+    "phonetic": "/ˌɑːkiˈɒlədʒi/",
+    "meaning": "n. 考古学",
+    "example": "Archaeology studies objects from the past.",
+    "translation": "考古学研究过去留下的物品。"
+  },
+  "artifact": {
+    "word": "artifact",
+    "phonetic": "/ˈɑːtɪfækt/",
+    "meaning": "n. 人工制品；文物",
+    "example": "The museum displays an ancient artifact.",
+    "translation": "博物馆展出了一件古代文物。"
+  },
+  "astronomy": {
+    "word": "astronomy",
+    "phonetic": "/əˈstrɒnəmi/",
+    "meaning": "n. 天文学",
+    "example": "Astronomy explores stars and planets.",
+    "translation": "天文学探索恒星和行星。"
+  },
+  "atmosphere": {
+    "word": "atmosphere",
+    "phonetic": "/ˈætməsfɪə/",
+    "meaning": "n. 大气；气氛",
+    "example": "The planet has a thin atmosphere.",
+    "translation": "这颗行星的大气很稀薄。"
+  },
+  "behavior": {
+    "word": "behavior",
+    "phonetic": "/bɪˈheɪvjə/",
+    "meaning": "n. 行为",
+    "example": "The study records the animals' behavior.",
+    "translation": "这项研究记录动物的行为。"
+  },
+  "cell": {
+    "word": "cell",
+    "phonetic": "/sel/",
+    "meaning": "n. 细胞；小房间",
+    "example": "A leaf contains many cells.",
+    "translation": "一片叶子含有许多细胞。"
+  },
+  "climate": {
+    "word": "climate",
+    "phonetic": "/ˈklaɪmət/",
+    "meaning": "n. 气候",
+    "example": "The region has a dry climate.",
+    "translation": "这个地区气候干燥。"
+  },
+  "colony": {
+    "word": "colony",
+    "phonetic": "/ˈkɒləni/",
+    "meaning": "n. 群体；殖民地",
+    "example": "A colony of ants lived under the stone.",
+    "translation": "一群蚂蚁生活在石头下面。"
+  },
+  "compound": {
+    "word": "compound",
+    "phonetic": "/ˈkɒmpaʊnd/",
+    "meaning": "n. 化合物；复合物",
+    "example": "Water is a chemical compound.",
+    "translation": "水是一种化合物。"
+  },
+  "decompose": {
+    "word": "decompose",
+    "phonetic": "/ˌdiːkəmˈpəʊz/",
+    "meaning": "v. 分解；腐烂",
+    "example": "Fallen leaves decompose on the forest floor.",
+    "translation": "落叶在森林地面上腐烂分解。"
+  },
+  "density": {
+    "word": "density",
+    "phonetic": "/ˈdensəti/",
+    "meaning": "n. 密度",
+    "example": "The material has a low density.",
+    "translation": "这种材料的密度很低。"
+  },
+  "deposit": {
+    "word": "deposit",
+    "phonetic": "/dɪˈpɒzɪt/",
+    "meaning": "n. 沉积物；v. 沉积",
+    "example": "The river deposited sand along its banks.",
+    "translation": "河流在两岸沉积了沙子。"
+  },
+  "ecology": {
+    "word": "ecology",
+    "phonetic": "/iˈkɒlədʒi/",
+    "meaning": "n. 生态学",
+    "example": "Ecology examines relationships between organisms.",
+    "translation": "生态学研究生物之间的关系。"
+  },
+  "ecosystem": {
+    "word": "ecosystem",
+    "phonetic": "/ˈiːkəʊsɪstəm/",
+    "meaning": "n. 生态系统",
+    "example": "A pond is a small ecosystem.",
+    "translation": "池塘是一个小型生态系统。"
+  },
+  "elevation": {
+    "word": "elevation",
+    "phonetic": "/ˌelɪˈveɪʃən/",
+    "meaning": "n. 海拔；升高",
+    "example": "The air is cooler at a higher elevation.",
+    "translation": "海拔更高的地方空气更凉。"
+  },
+  "evaporate": {
+    "word": "evaporate",
+    "phonetic": "/ɪˈvæpəreɪt/",
+    "meaning": "v. 蒸发",
+    "example": "Water evaporates from the surface of the lake.",
+    "translation": "水从湖面蒸发。"
+  },
+  "evolution": {
+    "word": "evolution",
+    "phonetic": "/ˌiːvəˈluːʃən/",
+    "meaning": "n. 演化；进化",
+    "example": "The lecture explains the evolution of birds.",
+    "translation": "这堂课讲解鸟类的演化。"
+  },
+  "excavate": {
+    "word": "excavate",
+    "phonetic": "/ˈekskəveɪt/",
+    "meaning": "v. 挖掘；发掘",
+    "example": "The team excavated part of the ancient town.",
+    "translation": "团队发掘了古镇的一部分。"
+  },
+  "extinct": {
+    "word": "extinct",
+    "phonetic": "/ɪkˈstɪŋkt/",
+    "meaning": "adj. 灭绝的",
+    "example": "This species became extinct long ago.",
+    "translation": "这个物种很久以前就灭绝了。"
+  },
+  "fossil": {
+    "word": "fossil",
+    "phonetic": "/ˈfɒsəl/",
+    "meaning": "n. 化石",
+    "example": "They found a fossil in the rock.",
+    "translation": "他们在岩石中发现了一块化石。"
+  },
+  "geology": {
+    "word": "geology",
+    "phonetic": "/dʒiˈɒlədʒi/",
+    "meaning": "n. 地质学",
+    "example": "Geology helps us understand the Earth's history.",
+    "translation": "地质学帮助我们了解地球的历史。"
+  },
+  "glacier": {
+    "word": "glacier",
+    "phonetic": "/ˈɡlæsiə/",
+    "meaning": "n. 冰川",
+    "example": "The glacier moves slowly down the valley.",
+    "translation": "冰川缓慢地沿山谷向下移动。"
+  },
+  "gravity": {
+    "word": "gravity",
+    "phonetic": "/ˈɡrævəti/",
+    "meaning": "n. 重力；严重性",
+    "example": "Gravity keeps us on the ground.",
+    "translation": "重力使我们留在地面上。"
+  },
+  "hemisphere": {
+    "word": "hemisphere",
+    "phonetic": "/ˈhemɪsfɪə/",
+    "meaning": "n. 半球",
+    "example": "The equator divides the Earth into two hemispheres.",
+    "translation": "赤道把地球分成两个半球。"
+  },
+  "insulate": {
+    "word": "insulate",
+    "phonetic": "/ˈɪnsjəleɪt/",
+    "meaning": "v. 隔热；使绝缘",
+    "example": "Thick walls help insulate the house.",
+    "translation": "厚墙有助于为房屋隔热。"
+  },
+  "mammal": {
+    "word": "mammal",
+    "phonetic": "/ˈmæməl/",
+    "meaning": "n. 哺乳动物",
+    "example": "A whale is a mammal.",
+    "translation": "鲸是哺乳动物。"
+  },
+  "mineral": {
+    "word": "mineral",
+    "phonetic": "/ˈmɪnərəl/",
+    "meaning": "n. 矿物",
+    "example": "This rock contains several minerals.",
+    "translation": "这块岩石含有几种矿物。"
+  },
+  "nucleus": {
+    "word": "nucleus",
+    "phonetic": "/ˈnjuːkliəs/",
+    "meaning": "n. 细胞核；核心",
+    "example": "The nucleus contains the cell's genetic material.",
+    "translation": "细胞核含有细胞的遗传物质。"
+  },
+  "nutrient": {
+    "word": "nutrient",
+    "phonetic": "/ˈnjuːtriənt/",
+    "meaning": "n. 营养物质",
+    "example": "Roots absorb water and nutrients.",
+    "translation": "根吸收水和营养物质。"
+  },
+  "organism": {
+    "word": "organism",
+    "phonetic": "/ˈɔːɡənɪzəm/",
+    "meaning": "n. 生物；有机体",
+    "example": "Every organism needs energy.",
+    "translation": "每个生物都需要能量。"
+  },
+  "photosynthesis": {
+    "word": "photosynthesis",
+    "phonetic": "/ˌfəʊtəʊˈsɪnθəsɪs/",
+    "meaning": "n. 光合作用",
+    "example": "Plants use sunlight in photosynthesis.",
+    "translation": "植物在光合作用中利用阳光。"
+  },
+  "plate": {
+    "word": "plate",
+    "phonetic": "/pleɪt/",
+    "meaning": "n. 板块；盘子",
+    "example": "The Earth's plates move slowly.",
+    "translation": "地球的板块缓慢移动。"
+  },
+  "precipitation": {
+    "word": "precipitation",
+    "phonetic": "/prɪˌsɪpɪˈteɪʃən/",
+    "meaning": "n. 降水；沉淀",
+    "example": "Snow is a form of precipitation.",
+    "translation": "雪是一种降水形式。"
+  },
+  "predator": {
+    "word": "predator",
+    "phonetic": "/ˈpredətə/",
+    "meaning": "n. 捕食者",
+    "example": "The owl is a skilled predator.",
+    "translation": "猫头鹰是善于捕食的动物。"
+  },
+  "prey": {
+    "word": "prey",
+    "phonetic": "/preɪ/",
+    "meaning": "n. 猎物",
+    "example": "The eagle watched its prey.",
+    "translation": "鹰注视着它的猎物。"
+  },
+  "reproduce": {
+    "word": "reproduce",
+    "phonetic": "/ˌriːprəˈdjuːs/",
+    "meaning": "v. 繁殖；复制",
+    "example": "These plants reproduce by seeds.",
+    "translation": "这些植物通过种子繁殖。"
+  },
+  "sediment": {
+    "word": "sediment",
+    "phonetic": "/ˈsedɪmənt/",
+    "meaning": "n. 沉积物",
+    "example": "Sediment settled at the bottom of the lake.",
+    "translation": "沉积物沉到了湖底。"
+  },
+  "species": {
+    "word": "species",
+    "phonetic": "/ˈspiːʃiːz/",
+    "meaning": "n. 物种",
+    "example": "Several bird species live in this forest.",
+    "translation": "几种鸟类生活在这片森林里。"
+  },
+  "specimen": {
+    "word": "specimen",
+    "phonetic": "/ˈspesɪmən/",
+    "meaning": "n. 样本；标本",
+    "example": "The scientist examined the specimen.",
+    "translation": "科学家检查了这个标本。"
+  },
+  "stimulus": {
+    "word": "stimulus",
+    "phonetic": "/ˈstɪmjələs/",
+    "meaning": "n. 刺激；刺激因素",
+    "example": "Light acts as a stimulus for this response.",
+    "translation": "光是引起这种反应的刺激因素。"
+  },
+  "stratum": {
+    "word": "stratum",
+    "phonetic": "/ˈstrɑːtəm/",
+    "meaning": "n. 地层；层",
+    "example": "The fossil was found in a deep stratum.",
+    "translation": "这块化石是在很深的地层中发现的。"
+  },
+  "tectonic": {
+    "word": "tectonic",
+    "phonetic": "/tekˈtɒnɪk/",
+    "meaning": "adj. 地壳构造的",
+    "example": "Tectonic activity can create mountains.",
+    "translation": "构造活动能够形成山脉。"
+  },
+  "thermal": {
+    "word": "thermal",
+    "phonetic": "/ˈθɜːməl/",
+    "meaning": "adj. 热的；与热有关的",
+    "example": "The material provides thermal insulation.",
+    "translation": "这种材料能够隔热。"
+  },
+  "transmit": {
+    "word": "transmit",
+    "phonetic": "/trænzˈmɪt/",
+    "meaning": "v. 传送；传播",
+    "example": "The device transmits a radio signal.",
+    "translation": "这个装置传送无线电信号。"
+  },
+  "variable": {
+    "word": "variable",
+    "phonetic": "/ˈveəriəbəl/",
+    "meaning": "n. 变量；adj. 可变的",
+    "example": "Change only one variable in the experiment.",
+    "translation": "实验中每次只改变一个变量。"
+  },
+  "vegetation": {
+    "word": "vegetation",
+    "phonetic": "/ˌvedʒəˈteɪʃən/",
+    "meaning": "n. 植被",
+    "example": "Dense vegetation covers the hillside.",
+    "translation": "茂密的植被覆盖着山坡。"
+  },
+  "vertebrate": {
+    "word": "vertebrate",
+    "phonetic": "/ˈvɜːtɪbrət/",
+    "meaning": "n. 脊椎动物",
+    "example": "A fish is a vertebrate.",
+    "translation": "鱼是脊椎动物。"
+  },
+  "volcanic": {
+    "word": "volcanic",
+    "phonetic": "/vɒlˈkænɪk/",
+    "meaning": "adj. 火山的",
+    "example": "Volcanic ash covered the field.",
+    "translation": "火山灰覆盖了田野。"
+  },
+  "wavelength": {
+    "word": "wavelength",
+    "phonetic": "/ˈweɪvleŋθ/",
+    "meaning": "n. 波长",
+    "example": "The instrument measures the wavelength of light.",
+    "translation": "这台仪器测量光的波长。"
+  }
+}
