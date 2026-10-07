@@ -85,6 +85,8 @@ const domain = name => require(path.join(root, 'entry/src/main/ets', name));
 const models = domain('model/AppModels.ets');
 const { LearningService } = domain('service/LearningService.ets');
 const { scheduleReview, adjustedNewTarget } = domain('service/ReviewScheduler.ets');
+const { strengthAfterResult, strengthName } = domain('utils/MemoryUtils.ets');
+const { dailyPlanProgress, isDailyPlanComplete } = domain('utils/DailyPlanUtils.ets');
 const { DatabaseManager } = domain('repository/DatabaseManager.ets');
 const { LearningRepository } = domain('repository/LearningRepository.ets');
 let checks = 0;
@@ -99,6 +101,108 @@ const catalog = { version: 1, books: [
 const contextFor = catalog => ({ resourceManager: { async getRawFileContent() {
   return new TextEncoder().encode(JSON.stringify(catalog));
 } } });
+const withIsolatedRepository = async action => {
+  const previousStore = stores.get('ciying.db');
+  const previousSettings = new Map(settingsFiles);
+  const isolatedStore = new RdbStore(':memory:');
+  stores.set('ciying.db', isolatedStore); settingsFiles.clear();
+  try {
+    const database = new DatabaseManager();
+    await database.initialize(contextFor(catalog));
+    const repository = new LearningRepository(database);
+    await repository.importCatalog(catalog);
+    await action(repository, isolatedStore, database);
+  } finally {
+    isolatedStore.db.close();
+    if (previousStore) stores.set('ciying.db', previousStore); else stores.delete('ciying.db');
+    settingsFiles.clear();
+    for (const [name, values] of previousSettings) settingsFiles.set(name, values);
+  }
+};
+const persistedLearningState = store => ({
+  progress: store.db.prepare('SELECT * FROM word_progress ORDER BY word_id').all(),
+  records: store.db.prepare('SELECT * FROM review_record ORDER BY id').all(),
+  plans: store.db.prepare('SELECT * FROM daily_plan ORDER BY date').all(),
+  days: store.db.prepare('SELECT * FROM daily_summary ORDER BY date').all(),
+  mastered: store.db.prepare('SELECT * FROM mastered_word ORDER BY word_id').all(),
+  session: store.db.prepare('SELECT * FROM study_session ORDER BY id').all(),
+  meta: store.db.prepare('SELECT * FROM app_meta ORDER BY key').all()
+});
+const seedLearnedWord = async (store, wordId, firstLearnedAt, strength = 50) => {
+  await store.executeSql('INSERT INTO word_progress(word_id,strength,level,next_review_at,last_review_at,review_count) VALUES(?,?,?,?,?,1)',
+    [wordId, strength, 1, (firstLearnedAt || 0) + 86400000, firstLearnedAt || 0]);
+  if (firstLearnedAt !== undefined) {
+    await store.executeSql('INSERT INTO review_record(word_id,result,review_at,response_ms,previous_level,next_level,previous_strength,next_strength,item_type) VALUES(?,?,?,?,?,?,?,?,?)',
+      [wordId, models.ReviewResult.KNOW, firstLearnedAt, 1000, 0, 1, 0, strength, 'new']);
+  }
+};
+const seedLegacyLearningState = async (repo, store, now) => {
+  const entries = await repo.getWords('', 'all', '');
+  const recalled = entries[0].id;
+  const retained = entries[1].id;
+  const fuzzy = entries[2].id;
+  await store.executeSql("INSERT INTO word(word,phonetic,meaning,example,translation) VALUES('partial_history','','部分历史','','')");
+  const partial = await repo.scalar("SELECT id FROM word WHERE word='partial_history'");
+  await store.executeSql("INSERT INTO word(word,phonetic,meaning,example,translation) VALUES('broken_history','','断开的历史','','')");
+  const broken = await repo.scalar("SELECT id FROM word WHERE word='broken_history'");
+  for (const values of [[recalled, 48, 4, now + 3000000, now - 1000, 4, 1, 1, 1],
+    [retained, 96, 8, now + 6000000, now - 2000, 8, 3, 1, 0],
+    [fuzzy, 25, 2, now + 60000, now - 3000, 2, 1, 0, 1],
+    [partial, 36, 3, now + 2000000, now - 1000, 3, 0, 1, 1],
+    [broken, 24, 2, now + 1000000, now - 1000, 2, 0, 0, 0]]) {
+    await store.executeSql('INSERT INTO word_progress(word_id,strength,level,next_review_at,last_review_at,review_count,wrong_count,favorite,is_new_word) VALUES(?,?,?,?,?,?,?,?,?)', values);
+  }
+  for (let index = 0; index < 4; index++) {
+    await store.executeSql('INSERT INTO review_record(word_id,result,review_at,response_ms,previous_level,next_level,previous_strength,next_strength,item_type) VALUES(?,?,?,?,?,?,?,?,?)',
+      [recalled, models.ReviewResult.KNOW, now - (4 - index) * 1000, (index + 1) * 100, index, index + 1,
+        index * 12, (index + 1) * 12, index === 0 ? 'new' : 'review']);
+  }
+  // A retained history starts from its stored baseline. Equal event times still replay by record ID.
+  await store.executeSql('INSERT INTO review_record(word_id,result,review_at,response_ms,previous_level,next_level,previous_strength,next_strength,item_type) VALUES(?,?,?,?,?,?,?,?,?)',
+    [fuzzy, models.ReviewResult.FUZZY, now - 3000, 700, 3, 3, 40, 45, 'review']);
+  await store.executeSql('INSERT INTO review_record(word_id,result,review_at,response_ms,previous_level,next_level,previous_strength,next_strength,item_type) VALUES(?,?,?,?,?,?,?,?,?)',
+    [fuzzy, models.ReviewResult.FORGET, now - 3000, 800, 3, 2, 45, 25, 'review']);
+  await store.executeSql('INSERT INTO review_record(word_id,result,review_at,response_ms,previous_level,next_level,previous_strength,next_strength,item_type) VALUES(?,?,?,?,?,?,?,?,?)',
+    [partial, models.ReviewResult.KNOW, now - 1000, 900, 2, 3, 24, 36, 'review']);
+  for (const values of [[broken, models.ReviewResult.KNOW, now - 2000, 400, 0, 1, 0, 12, 'new'],
+    [broken, models.ReviewResult.KNOW, now - 1000, 500, 1, 2, 10, 24, 'review']]) {
+    await store.executeSql('INSERT INTO review_record(word_id,result,review_at,response_ms,previous_level,next_level,previous_strength,next_strength,item_type) VALUES(?,?,?,?,?,?,?,?,?)', values);
+  }
+  await store.executeSql('INSERT INTO mastered_word(word_id,first_mastered_at) VALUES(?,?)', [retained, now - 86400000]);
+  await store.executeSql('INSERT INTO daily_plan(date,new_target,review_target,new_done,review_done,estimated_minutes,budget) VALUES(?,?,?,?,?,?,?)',
+    ['2026-10-07', 20, 6, 2, 6, 8, 'normal']);
+  await store.executeSql('INSERT INTO daily_summary(date,new_count,review_count,known_count,total_count,duration_ms) VALUES(?,?,?,?,?,?)',
+    ['2026-10-07', 2, 6, 4, 8, 2500]);
+  const session = new models.StudySession();
+  session.items = [{ word: entries[0], type: 'review' }, { word: entries[2], type: 'new' }];
+  session.mode = 'quick'; session.startedAt = now - 10000; session.index = 1; session.completed = 1;
+  await repo.saveSession(session);
+  return { recalled, retained, fuzzy, partial, broken };
+};
+const seedVersionOneLearningState = async (repo, store, now) => {
+  const ids = await seedLegacyLearningState(repo, store, now);
+  const recalledRecords = store.db.prepare('SELECT id FROM review_record WHERE word_id=? ORDER BY id').all(ids.recalled);
+  for (let index = 0; index < recalledRecords.length; index++) {
+    await store.executeSql('UPDATE review_record SET previous_strength=?,next_strength=? WHERE id=?',
+      [index === 0 ? 0 : 50 + (index - 1) * 12, 50 + index * 12, recalledRecords[index].id]);
+  }
+  await store.executeSql('UPDATE word_progress SET strength=86 WHERE word_id=?', [ids.recalled]);
+  await store.executeSql('INSERT INTO mastered_word(word_id,first_mastered_at) VALUES(?,?)', [ids.recalled, now - 1000]);
+  await store.executeSql("INSERT INTO word(word,phonetic,meaning,example,translation) VALUES('mastery_v1_history','','历史掌握词','','')");
+  const mastery = await repo.scalar("SELECT id FROM word WHERE word='mastery_v1_history'");
+  await store.executeSql('INSERT INTO word_progress(word_id,strength,level,next_review_at,last_review_at,review_count,wrong_count,favorite,is_new_word) VALUES(?,?,?,?,?,?,?,?,?)',
+    [mastery, 100, 8, now + 9000000, now - 1000, 8, 0, 1, 0]);
+  const strengths = [0, 50, 62, 74, 86, 98, 100, 100, 100];
+  for (let index = 0; index < 8; index++) {
+    await store.executeSql('INSERT INTO review_record(word_id,result,review_at,response_ms,previous_level,next_level,previous_strength,next_strength,item_type) VALUES(?,?,?,?,?,?,?,?,?)',
+      [mastery, models.ReviewResult.KNOW, now - (8 - index) * 1000, 200 + index, index, index + 1,
+        strengths[index], strengths[index + 1], index === 0 ? 'new' : 'review']);
+  }
+  await store.executeSql('INSERT INTO mastered_word(word_id,first_mastered_at) VALUES(?,?)', [mastery, now - 5000]);
+  await store.executeSql('UPDATE daily_summary SET total_count=new_count');
+  await store.executeSql('INSERT INTO app_meta(key,value) VALUES(?,?)', ['learning_semantics_version', '1']);
+  return { ...ids, mastery };
+};
 (async () => {
   let now = new Date(2026, 9, 6, 23, 59, 30).getTime();
   const actualNow = Date.now;
@@ -116,6 +220,364 @@ const contextFor = catalog => ({ resourceManager: { async getRawFileContent() {
     p.strength = 98;
     assert.equal(scheduleReview(p, models.ReviewResult.KNOW, now).strength, 100);
     assert.equal(adjustedNewTarget(20, 61), 6); assert.equal(adjustedNewTarget(20, 100), 0);
+  });
+  await check('document ratings use bounded +5 and +12 increments and strength labels change only at their thresholds', async () => {
+    const progress = new models.WordProgress();
+    const results = [[models.ReviewResult.FORGET, 0, '陌生'], [models.ReviewResult.FUZZY, 5, '陌生'],
+      [models.ReviewResult.KNOW, 12, '陌生']];
+    for (const [result, strength, label] of results) {
+      const next = scheduleReview(progress, result, now);
+      assert.equal(next.strength, strength); assert.equal(strengthName(next.strength), label);
+      assert.equal(strengthAfterResult(0, result), strength);
+      assert.equal(progress.strength, 0); assert.equal(progress.reviewCount, 0);
+    }
+    let next = progress;
+    for (const [strength, label] of [[12, '陌生'], [24, '陌生'], [36, '模糊'], [48, '模糊'],
+      [60, '熟悉'], [72, '熟悉'], [84, '掌握'], [96, '掌握'], [100, '掌握']]) {
+      next = scheduleReview(next, models.ReviewResult.KNOW, now);
+      assert.equal(next.strength, strength);
+      assert.equal(strengthName(next.strength), label);
+    }
+    for (const [strength, label] of [[0, '陌生'], [24, '陌生'], [25, '模糊'], [49, '模糊'],
+      [50, '熟悉'], [74, '熟悉'], [75, '掌握'], [100, '掌握']]) {
+      assert.equal(strengthName(strength), label);
+    }
+    assert.equal(strengthAfterResult(24, models.ReviewResult.FUZZY), 29);
+    assert.equal(strengthAfterResult(24, models.ReviewResult.KNOW), 36);
+    assert.equal(strengthAfterResult(3, models.ReviewResult.FORGET), 0);
+    assert.equal(strengthAfterResult(98, models.ReviewResult.FUZZY), 100);
+    const forgotten = scheduleReview(next, models.ReviewResult.FORGET, now);
+    assert.equal(forgotten.strength, 80); assert.equal(forgotten.level, next.level - 1);
+    assert.equal(forgotten.reviewCount, next.reviewCount + 1);
+    assert.equal(forgotten.wrongCount, next.wrongCount + 1);
+    assert.equal(forgotten.lastReviewAt, now);
+    assert.equal(forgotten.nextReviewAt - now, 12 * 60 * 60000);
+  });
+  await check('document intervals follow the fixed level table for fuzzy, known and forgotten results', async () => {
+    const minutes = [10, 1440, 4320, 10080, 20160, 43200, 86400, 86400];
+    for (let level = 0; level < 7; level++) {
+      const progress = new models.WordProgress(); progress.level = level; progress.strength = 40;
+      const fuzzy = scheduleReview(progress, models.ReviewResult.FUZZY, now);
+      assert.equal(fuzzy.level, level); assert.equal(fuzzy.strength, 45);
+      assert.equal(fuzzy.nextReviewAt, now + Math.round(minutes[level] * 0.6) * 60000);
+      const known = scheduleReview(progress, models.ReviewResult.KNOW, now);
+      assert.equal(known.level, level + 1); assert.equal(known.strength, 52);
+      assert.equal(known.nextReviewAt, now + minutes[level + 1] * 60000);
+      const forgotten = scheduleReview(progress, models.ReviewResult.FORGET, now);
+      assert.equal(forgotten.level, Math.max(0, level - 1)); assert.equal(forgotten.strength, 20);
+      assert.equal(forgotten.nextReviewAt, now + (level <= 1 ? 10 : 720) * 60000);
+      assert.equal(progress.level, level); assert.equal(progress.strength, 40);
+    }
+  });
+  await check('daily plan progress includes new and review counts while completion still requires both separate goals', async () => {
+    const plan = new models.DailyPlan();
+    plan.newTarget = 20; plan.newDone = 10; plan.reviewTarget = 2; plan.reviewDone = 1;
+    assert.equal(dailyPlanProgress(plan), 50); assert.equal(isDailyPlanComplete(plan), false);
+    plan.newDone = 20; plan.reviewDone = 0;
+    assert.equal(dailyPlanProgress(plan), 20 / 22 * 100); assert.equal(isDailyPlanComplete(plan), false);
+    plan.reviewDone = 1; assert.equal(dailyPlanProgress(plan), 21 / 22 * 100); assert.equal(isDailyPlanComplete(plan), false);
+    plan.reviewDone = 2; assert.equal(dailyPlanProgress(plan), 100); assert.equal(isDailyPlanComplete(plan), true);
+    plan.newDone = 25; plan.reviewDone = 0;
+    assert.equal(dailyPlanProgress(plan), 100); assert.equal(isDailyPlanComplete(plan), false);
+    plan.newDone = 0; plan.reviewDone = 25;
+    assert.equal(dailyPlanProgress(plan), 100); assert.equal(isDailyPlanComplete(plan), false);
+    plan.newDone = -1; plan.reviewDone = 0; assert.equal(dailyPlanProgress(plan), 0);
+    plan.newTarget = 0; plan.newDone = 0; plan.reviewDone = 0;
+    assert.equal(dailyPlanProgress(plan), 0); assert.equal(isDailyPlanComplete(plan), false);
+    plan.reviewDone = 1; assert.equal(dailyPlanProgress(plan), 50); assert.equal(isDailyPlanComplete(plan), false);
+    plan.reviewDone = 2; assert.equal(dailyPlanProgress(plan), 100); assert.equal(isDailyPlanComplete(plan), true);
+    plan.reviewTarget = 0; plan.reviewDone = 0;
+    assert.equal(dailyPlanProgress(plan), 100); assert.equal(isDailyPlanComplete(plan), true);
+  });
+  await check('new words and repeated reviews keep independent daily counts and review-only days retain streak', async () => {
+    await withIsolatedRepository(async (isolatedRepo, isolatedStore) => {
+      const savedNow = now;
+      try {
+        now = new Date(2026, 9, 7, 12).getTime();
+        const extended = JSON.parse(JSON.stringify(catalog)); extended.version = 2;
+        extended.books[0].words.push(...Array.from({ length: 18 }, (_, index) => word(`counter_fixture_${index}`, '统计测试词')));
+        await isolatedRepo.importCatalog(extended);
+        const isolatedService = new LearningService();
+        await isolatedService.initialize(contextFor(catalog));
+        await isolatedService.getSnapshot();
+        const entries = await isolatedRepo.getWords('', 'all', '');
+        const session = new models.StudySession();
+        const answer = async (wordId, result) => {
+          const previous = await isolatedRepo.getProgress(wordId);
+          await isolatedRepo.record(previous, scheduleReview(previous, result, now), result, 1000, session, now);
+        };
+        for (const entry of entries.slice(0, 20)) await answer(entry.id, models.ReviewResult.KNOW);
+        await answer(entries[0].id, models.ReviewResult.KNOW);
+        await answer(entries[0].id, models.ReviewResult.FUZZY);
+        const snapshot = await isolatedService.getSnapshot();
+        assert.equal(snapshot.stats.totalLearned, 20); assert.equal(snapshot.stats.mastered, 0);
+        assert.equal(snapshot.plan.newDone, 20); assert.equal(snapshot.plan.reviewDone, 2);
+        assert.equal(dailyPlanProgress(snapshot.plan), 100);
+        assert.deepEqual(snapshot.stats.strengthCounts, [19, 1, 0, 0]);
+        const today = snapshot.stats.days.find(day => day.date === '2026-10-07');
+        assert.deepEqual([today.newCount, today.reviewCount, today.totalCount, today.knownCount, today.durationMs],
+          [20, 2, 22, 1, 22000]);
+        assert.equal(snapshot.stats.successRate, 50);
+        assert.deepEqual(isolatedStore.db.prepare('SELECT item_type,COUNT(*) AS count FROM review_record GROUP BY item_type ORDER BY item_type').all()
+          .map(row => [row.item_type, row.count]), [['new', 20], ['review', 2]]);
+        now += 86400000;
+        await isolatedService.getSnapshot();
+        await answer(entries[0].id, models.ReviewResult.KNOW);
+        const reviewOnly = await isolatedService.getSnapshot();
+        assert.equal(reviewOnly.stats.totalLearned, 20); assert.equal(reviewOnly.plan.newDone, 0);
+        assert.equal(reviewOnly.plan.reviewDone, 1); assert.equal(reviewOnly.stats.streak, 2);
+        const nextDay = reviewOnly.stats.days.find(day => day.date === '2026-10-08');
+        assert.deepEqual([nextDay.newCount, nextDay.reviewCount, nextDay.totalCount, nextDay.knownCount, nextDay.durationMs],
+          [0, 1, 1, 1, 1000]);
+        assert.equal((await isolatedRepo.getPlan('2026-10-07')).newDone, 20);
+        assert.equal((await isolatedRepo.getPlan('2026-10-07')).reviewDone, 2);
+      } finally { now = savedNow; }
+    });
+  });
+  await check('version 2 migration restores document ratings, totals and first mastery while preserving learning schedules and saved state', async () => {
+    await withIsolatedRepository(async (isolatedRepo, isolatedStore) => {
+      const ids = await seedVersionOneLearningState(isolatedRepo, isolatedStore, now);
+      const before = persistedLearningState(isolatedStore);
+      await isolatedRepo.migrateLearningSemantics();
+      const after = persistedLearningState(isolatedStore);
+      assert.equal((await isolatedRepo.getProgress(ids.recalled)).strength, 48);
+      assert.equal((await isolatedRepo.getProgress(ids.mastery)).strength, 96);
+      assert.equal((await isolatedRepo.getProgress(ids.fuzzy)).strength, 25);
+      assert.deepEqual(await isolatedRepo.getProgress(ids.retained), Object.assign(new models.WordProgress(), {
+        wordId: ids.retained, strength: 96, level: 8, nextReviewAt: now + 6000000,
+        lastReviewAt: now - 2000, reviewCount: 8, wrongCount: 3, favorite: true, isNewWord: false
+      }));
+      const withoutStrength = rows => rows.map(({ strength, ...rest }) => rest);
+      const withoutRating = rows => rows.map(({ previous_strength, next_strength, ...rest }) => rest);
+      assert.deepEqual(withoutStrength(after.progress), withoutStrength(before.progress));
+      assert.deepEqual(withoutRating(after.records), withoutRating(before.records));
+      for (const id of [ids.retained, ids.fuzzy, ids.partial, ids.broken]) {
+        assert.deepEqual(after.progress.find(row => row.word_id === id), before.progress.find(row => row.word_id === id));
+        assert.deepEqual(after.records.filter(row => row.word_id === id), before.records.filter(row => row.word_id === id));
+      }
+      assert.deepEqual(after.records.slice(0, 4).map(row => [row.previous_strength, row.next_strength]),
+        [[0, 12], [12, 24], [24, 36], [36, 48]]);
+      assert.deepEqual(after.records.filter(row => row.word_id === ids.mastery)
+        .map(row => [row.previous_strength, row.next_strength]),
+        [[0, 12], [12, 24], [24, 36], [36, 48], [48, 60], [60, 72], [72, 84], [84, 96]]);
+      assert.deepEqual(after.plans, before.plans); assert.deepEqual(after.session, before.session);
+      assert.deepEqual(after.days.map(row => [row.new_count, row.review_count, row.known_count, row.total_count, row.duration_ms]),
+        [[2, 6, 4, 8, 2500]]);
+      assert.equal(after.mastered.some(row => row.word_id === ids.recalled), false);
+      assert.equal(after.mastered.find(row => row.word_id === ids.mastery).first_mastered_at, now - 2000);
+      assert.equal(after.mastered.find(row => row.word_id === ids.retained).first_mastered_at, now - 86400000);
+      assert.equal(await isolatedRepo.scalar("SELECT CAST(value AS INTEGER) FROM app_meta WHERE key='learning_semantics_version'"), 2);
+      assert.equal(await isolatedRepo.dictionaryVersion(), catalog.version);
+      await isolatedRepo.migrateLearningSemantics();
+      assert.deepEqual(persistedLearningState(isolatedStore), after);
+    });
+  });
+  await check('document-era histories without a migration marker retain their ratings and historical mastery dates', async () => {
+    await withIsolatedRepository(async (isolatedRepo, isolatedStore) => {
+      const ids = await seedLegacyLearningState(isolatedRepo, isolatedStore, now);
+      const before = persistedLearningState(isolatedStore);
+      await isolatedRepo.migrateLearningSemantics();
+      const after = persistedLearningState(isolatedStore);
+      assert.deepEqual(after.progress, before.progress); assert.deepEqual(after.records, before.records);
+      assert.deepEqual(after.plans, before.plans); assert.deepEqual(after.days, before.days);
+      assert.deepEqual(after.mastered, before.mastered); assert.deepEqual(after.session, before.session);
+      assert.equal((await isolatedRepo.getProgress(ids.recalled)).strength, 48);
+      assert.equal(after.mastered.find(row => row.word_id === ids.retained).first_mastered_at, now - 86400000);
+      assert.equal(await isolatedRepo.scalar("SELECT CAST(value AS INTEGER) FROM app_meta WHERE key='learning_semantics_version'"), 2);
+      await isolatedRepo.migrateLearningSemantics();
+      assert.deepEqual(persistedLearningState(isolatedStore), after);
+    });
+  });
+  await check('failed version 2 migration rolls back document ratings, mastery, totals and its version marker before retry', async () => {
+    await withIsolatedRepository(async (isolatedRepo, isolatedStore) => {
+      const ids = await seedVersionOneLearningState(isolatedRepo, isolatedStore, now);
+      const before = persistedLearningState(isolatedStore);
+      await isolatedStore.executeSql("CREATE TRIGGER reject_learning_migration BEFORE INSERT ON app_meta WHEN NEW.key='learning_semantics_version' AND NEW.value='2' BEGIN SELECT RAISE(ABORT,'simulated migration failure'); END");
+      await assert.rejects(isolatedRepo.migrateLearningSemantics(), /simulated migration failure/);
+      assert.deepEqual(persistedLearningState(isolatedStore), before);
+      assert.equal(await isolatedRepo.scalar("SELECT CAST(value AS INTEGER) FROM app_meta WHERE key='learning_semantics_version'"), 1);
+      await isolatedStore.executeSql('DROP TRIGGER reject_learning_migration');
+      await isolatedRepo.migrateLearningSemantics();
+      assert.equal((await isolatedRepo.getProgress(ids.recalled)).strength, 48);
+      assert.equal((await isolatedRepo.getProgress(ids.mastery)).strength, 96);
+      assert.equal((await isolatedRepo.getDays())[0].totalCount, 8);
+      assert.equal(await isolatedRepo.scalar("SELECT CAST(value AS INTEGER) FROM app_meta WHERE key='learning_semantics_version'"), 2);
+      assert.equal((await isolatedRepo.getStatistics(now)).mastered, 2);
+    });
+  });
+  await check('document due queue includes words exactly at their review time and prioritizes overdue time before strength', async () => {
+    await withIsolatedRepository(async (isolatedRepo, isolatedStore) => {
+      const entries = await isolatedRepo.getWords('', 'all', '');
+      for (const [entry, dueAt, strength] of [[entries[0], now - 600000, 90], [entries[1], now, 0],
+        [entries[2], now + 1, 0]]) {
+        await isolatedStore.executeSql('INSERT INTO word_progress(word_id,review_count,strength,next_review_at) VALUES(?,1,?,?)',
+          [entry.id, strength, dueAt]);
+      }
+      const before = persistedLearningState(isolatedStore);
+      assert.deepEqual((await isolatedRepo.getDue(now, 10)).map(entry => entry.id), [entries[0].id, entries[1].id]);
+      assert.deepEqual((await isolatedRepo.getDue(now - 1, 10)).map(entry => entry.id), [entries[0].id]);
+      await isolatedStore.executeSql('UPDATE word_progress SET next_review_at=? WHERE word_id=?', [now, entries[2].id]);
+      assert.deepEqual((await isolatedRepo.getDue(now, 10)).map(entry => entry.id), [entries[0].id, entries[1].id, entries[2].id]);
+      await isolatedStore.executeSql('UPDATE word_progress SET strength=25 WHERE word_id=?', [entries[1].id]);
+      assert.deepEqual((await isolatedRepo.getDue(now, 10)).map(entry => entry.id), [entries[0].id, entries[2].id, entries[1].id]);
+      assert.deepEqual(persistedLearningState(isolatedStore).records, before.records);
+      assert.deepEqual(persistedLearningState(isolatedStore).days, before.days);
+    });
+  });
+  await check('learned dates use first new-word events across local midnight and keep shared identities in one group', async () => {
+    await withIsolatedRepository(async (isolatedRepo, isolatedStore) => {
+      assert.deepEqual(await isolatedRepo.getLearnedDates(), []);
+      assert.deepEqual(await isolatedRepo.getLearnedWords(''), []);
+      assert.deepEqual(await isolatedRepo.getChallengeWords(), []);
+      const extended = JSON.parse(JSON.stringify(catalog)); extended.version = 2;
+      extended.books[0].words.push(word('midnight_edge', '午夜边界'), word('favorite_only', '仅收藏'));
+      await isolatedRepo.importCatalog(extended);
+      const entries = await isolatedRepo.getWords('', 'all', '');
+      const byWord = new Map(entries.map(entry => [entry.word, entry.id]));
+      const beforeMidnight = new Date(2026, 9, 5, 23, 59, 59, 999).getTime();
+      const midnight = new Date(2026, 9, 6).getTime();
+      const nextMidnight = new Date(2026, 9, 6, 23, 59, 59, 999).getTime();
+      await seedLearnedWord(isolatedStore, byWord.get('resilient'), beforeMidnight, 62);
+      await seedLearnedWord(isolatedStore, byWord.get('retain'), midnight, 25);
+      await seedLearnedWord(isolatedStore, byWord.get('midnight_edge'), nextMidnight, 75);
+      await seedLearnedWord(isolatedStore, byWord.get('maintain'), undefined, 50);
+      await isolatedRepo.setFlag(byWord.get('favorite_only'), true, true);
+      const laterReview = new Date(2026, 9, 7, 12).getTime();
+      const repeatedNew = new Date(2026, 9, 8, 12).getTime();
+      for (const [id, at, type] of [[byWord.get('resilient'), laterReview, 'review'],
+        [byWord.get('resilient'), repeatedNew, 'new'], [byWord.get('maintain'), laterReview, 'review']]) {
+        await isolatedStore.executeSql('INSERT INTO review_record(word_id,result,review_at,response_ms,previous_level,next_level,previous_strength,next_strength,item_type) VALUES(?,?,?,?,?,?,?,?,?)',
+          [id, models.ReviewResult.KNOW, at, 1000, 1, 2, 50, 62, type]);
+      }
+      await isolatedStore.executeSql('UPDATE word_progress SET last_review_at=?,review_count=3 WHERE word_id=?',
+        [repeatedNew, byWord.get('resilient')]);
+      const before = persistedLearningState(isolatedStore);
+      assert.deepEqual((await isolatedRepo.getLearnedDates()).map(group => [group.date, group.count]),
+        [['2026-10-06', 2], ['2026-10-05', 1], ['', 1]]);
+      const previousDay = await isolatedRepo.getLearnedWords('2026-10-05');
+      assert.deepEqual(previousDay.map(item => [item.word.id, item.firstLearnedAt, item.strength]),
+        [[byWord.get('resilient'), beforeMidnight, 62]]);
+      const day = await isolatedRepo.getLearnedWords('2026-10-06');
+      assert.deepEqual(new Set(day.map(item => item.word.id)),
+        new Set([byWord.get('retain'), byWord.get('midnight_edge')]));
+      assert.equal(day.find(item => item.word.id === byWord.get('retain')).firstLearnedAt, midnight);
+      assert.equal(day.find(item => item.word.id === byWord.get('midnight_edge')).firstLearnedAt, nextMidnight);
+      assert.deepEqual((await isolatedRepo.getLearnedWords('')).map(item => [item.word.id, item.firstLearnedAt]),
+        [[byWord.get('maintain'), 0]]);
+      assert.deepEqual(await isolatedRepo.getLearnedWords('2026-10-07'), []);
+      assert.deepEqual(await isolatedRepo.getLearnedWords('2026-10-08'), []);
+      assert.equal(new Set([...previousDay, ...day, ...await isolatedRepo.getLearnedWords('')]
+        .map(item => item.word.id)).size, 4);
+      assert.deepEqual(persistedLearningState(isolatedStore), before);
+    });
+  });
+  await check('learned date lookup rejects invalid dates without substituting another day or unknown history', async () => {
+    await withIsolatedRepository(async (isolatedRepo, isolatedStore) => {
+      const entry = (await isolatedRepo.getWords('', 'all', ''))[0];
+      await seedLearnedWord(isolatedStore, entry.id, undefined);
+      const before = persistedLearningState(isolatedStore);
+      for (const date of ['2026-02-30', '2026-13-01', '2026-10-32', '2026-1-06', 'not-a-date', "2026-10-06' OR 1=1--"]) {
+        await assert.rejects(isolatedRepo.getLearnedWords(date));
+      }
+      assert.deepEqual(await isolatedRepo.getLearnedWords('2024-02-29'), []);
+      assert.equal((await isolatedRepo.getLearnedWords('')).length, 1);
+      assert.deepEqual(persistedLearningState(isolatedStore), before);
+    });
+  });
+  await check('learned date pagination retrieves more than 80 words without gaps or repeats and challenge sampling caps at 50', async () => {
+    await withIsolatedRepository(async (isolatedRepo, isolatedStore) => {
+      const fixtures = Array.from({ length: 83 }, (_, index) => word(`learned_page_${String(index).padStart(3, '0')}`, `分页测试释义 ${index}`));
+      const extended = JSON.parse(JSON.stringify(catalog)); extended.version = 2;
+      extended.books[0].words.push(...fixtures);
+      await isolatedRepo.importCatalog(extended);
+      const entries = (await isolatedRepo.getWords('', 'all', '', 500)).filter(entry => entry.word.startsWith('learned_page_'));
+      assert.equal(entries.length, 83);
+      const firstAt = new Date(2026, 9, 9, 12).getTime();
+      for (let index = 0; index < entries.length; index++) {
+        await seedLearnedWord(isolatedStore, entries[index].id, firstAt + index);
+      }
+      const before = persistedLearningState(isolatedStore);
+      assert.deepEqual((await isolatedRepo.getLearnedDates()).map(group => [group.date, group.count]), [['2026-10-09', 83]]);
+      const firstPage = await isolatedRepo.getLearnedWords('2026-10-09');
+      const secondPage = await isolatedRepo.getLearnedWords('2026-10-09', '', 50, 50);
+      assert.equal(firstPage.length, 50); assert.equal(secondPage.length, 33);
+      assert.deepEqual(await isolatedRepo.getLearnedWords('2026-10-09', '', 0, 50), firstPage);
+      const pagedIds = [...firstPage, ...secondPage].map(item => item.word.id);
+      assert.equal(new Set(pagedIds).size, 83);
+      assert.deepEqual(new Set(pagedIds), new Set(entries.map(entry => entry.id)));
+      assert.deepEqual(await isolatedRepo.getLearnedWords('2026-10-09', '', 80, 50), secondPage.slice(30));
+      assert.deepEqual(await isolatedRepo.getLearnedWords('2026-10-09', '', 83, 50), []);
+      const eligibleIds = new Set(entries.map(entry => entry.id));
+      assert.equal((await isolatedRepo.getChallengeWords()).length, 10);
+      for (const limit of [1, 10, 500]) {
+        const challenge = await isolatedRepo.getChallengeWords(limit, 'cet6');
+        assert.equal(challenge.length, Math.min(limit, 50));
+        assert.equal(new Set(challenge.map(entry => entry.id)).size, challenge.length);
+        assert.equal(challenge.every(entry => eligibleIds.has(entry.id) && entry.meaning.trim().length > 0), true);
+      }
+      assert.deepEqual(persistedLearningState(isolatedStore), before);
+    });
+  });
+  await check('learned word search supports English prefixes, Chinese meanings and literal LIKE metacharacters', async () => {
+    await withIsolatedRepository(async (isolatedRepo, isolatedStore) => {
+      const fixtures = [word('glow', 'n. 光亮；亮度'), word('gloom', 'n. 阴暗'), word('afterglow', 'n. 余辉'),
+        word('%literal', '百分号词条'), word('_literal', '下划线词条'), word('\\literal', '反斜线词条'),
+        word('percent_meaning', '比例为 50%'), word('underscore_meaning', '符号为 _'), word('slash_meaning', '路径为 \\')];
+      const extended = JSON.parse(JSON.stringify(catalog)); extended.version = 2;
+      extended.books[0].words.push(...fixtures);
+      await isolatedRepo.importCatalog(extended);
+      const fixtureNames = new Set(fixtures.map(entry => entry.word));
+      const entries = (await isolatedRepo.getWords('', 'all', '')).filter(entry => fixtureNames.has(entry.word));
+      for (const entry of entries) await seedLearnedWord(isolatedStore, entry.id, new Date(2026, 9, 10, 12).getTime());
+      const before = persistedLearningState(isolatedStore);
+      const find = async query => new Set((await isolatedRepo.getLearnedWords('2026-10-10', query)).map(item => item.word.word));
+      assert.deepEqual(await find(' GLO '), new Set(['glow', 'gloom']));
+      assert.deepEqual(await find('glow'), new Set(['glow']));
+      assert.deepEqual(await find('亮度'), new Set(['glow']));
+      assert.deepEqual(await find('余辉'), new Set(['afterglow']));
+      assert.deepEqual(await find('%'), new Set(['%literal', 'percent_meaning']));
+      assert.deepEqual(await find('_'), new Set(['_literal', 'underscore_meaning']));
+      assert.deepEqual(await find('\\'), new Set(['\\literal', 'slash_meaning']));
+      assert.deepEqual(await find("' OR 1=1--"), new Set());
+      assert.deepEqual(persistedLearningState(isolatedStore), before);
+    });
+  });
+  await check('learned lists and challenges use current-book definitions without restricting shared learned candidates or changing data', async () => {
+    await withIsolatedRepository(async (isolatedRepo, isolatedStore) => {
+      const entries = await isolatedRepo.getWords('', 'all', '');
+      const learnedAt = new Date(2026, 9, 11, 12).getTime();
+      for (const entry of entries) await seedLearnedWord(isolatedStore, entry.id, learnedAt);
+      const shared = entries.find(entry => entry.word === 'resilient');
+      const override = word('Resilient', '自定义义一；自定义义二'); override.phonetic = '/custom/';
+      await isolatedRepo.insertBook({ id: 'custom_learned', name: '自定义已学', category: 'custom', description: '', words: [override] });
+      await isolatedStore.executeSql("INSERT INTO word(word,phonetic,meaning,example,translation) VALUES('empty_meaning','','   ','','')");
+      const emptyMeaning = await isolatedRepo.scalar("SELECT id FROM word WHERE word='empty_meaning'");
+      await seedLearnedWord(isolatedStore, emptyMeaning, learnedAt);
+      await isolatedStore.executeSql("INSERT INTO word(word,phonetic,meaning,example,translation) VALUES('flagged_unlearned','','未学词义','','')");
+      const flagged = await isolatedRepo.scalar("SELECT id FROM word WHERE word='flagged_unlearned'");
+      await isolatedRepo.setFlag(flagged, true, true);
+      const before = persistedLearningState(isolatedStore);
+      const definitionsBefore = isolatedStore.db.prepare('SELECT * FROM word ORDER BY id').all();
+      const membershipsBefore = isolatedStore.db.prepare('SELECT * FROM word_book_item ORDER BY book_id,word_id').all();
+      const list = await isolatedRepo.getLearnedWords('2026-10-11', '', 0, 50, 'custom_learned');
+      assert.equal(list.length, 4); assert.equal(new Set(list.map(item => item.word.id)).size, 4);
+      const custom = list.find(item => item.word.id === shared.id).word;
+      assert.equal(custom.meaning, override.meaning); assert.equal(custom.phonetic, override.phonetic);
+      assert.equal(custom.sourceBookId, 'custom_learned');
+      assert.deepEqual((await isolatedRepo.getLearnedWords('2026-10-11', '自定义义二', 0, 50, 'custom_learned'))
+        .map(item => item.word.id), [shared.id]);
+      assert.deepEqual(await isolatedRepo.getLearnedWords('2026-10-11', '韧性', 0, 50, 'custom_learned'), []);
+      assert.equal((await isolatedRepo.getLearnedWords('2026-10-11', '韧性'))[0].word.meaning, 'adj. 有韧性的');
+      const challenge = await isolatedRepo.getChallengeWords(10, 'custom_learned');
+      assert.equal(challenge.length, 3); assert.equal(new Set(challenge.map(entry => entry.id)).size, 3);
+      assert.deepEqual(new Set(challenge.map(entry => entry.id)), new Set(entries.map(entry => entry.id)));
+      assert.equal(challenge.find(entry => entry.id === shared.id).meaning, override.meaning);
+      assert.equal(challenge.some(entry => entry.word === 'maintain'), true);
+      assert.equal(challenge.some(entry => entry.id === emptyMeaning || entry.id === flagged), false);
+      assert.deepEqual(persistedLearningState(isolatedStore), before);
+      assert.deepEqual(isolatedStore.db.prepare('SELECT * FROM word ORDER BY id').all(), definitionsBefore);
+      assert.deepEqual(isolatedStore.db.prepare('SELECT * FROM word_book_item ORDER BY book_id,word_id').all(), membershipsBefore);
+    });
   });
   await service.initialize(contextFor(catalog));
   let db = new DatabaseManager();

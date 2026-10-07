@@ -1,7 +1,7 @@
 import { common } from '@kit.AbilityKit';
 import { util } from '@kit.ArkTS';
 import { AppSnapshot, DailyPlan, DataExport, DictionaryBook, DictionaryCatalog, ReviewRecord, ReviewResult,
-  StudyItem, StudySession, UserSettings, Word, WordProgress } from '../model/AppModels';
+  LearnedDate, LearnedWord, StudyItem, StudySession, UserSettings, Word, WordProgress } from '../model/AppModels';
 import { DatabaseManager } from '../repository/DatabaseManager';
 import { LearningRepository } from '../repository/LearningRepository';
 import { UserSettingsStore } from '../store/UserSettingsStore';
@@ -51,6 +51,7 @@ export class LearningService {
       this.validateWords(book.words);
     }
     await this.repository.importCatalog(catalog);
+    await this.repository.migrateLearningSemantics();
     const settings = this.getSettings();
     const books = await this.repository.getBooks();
     if (books.length === 0) {
@@ -178,6 +179,18 @@ export class LearningService {
     return this.repository.getHistory(id);
   }
 
+  getLearnedDates(): Promise<LearnedDate[]> {
+    return this.repository.getLearnedDates();
+  }
+
+  getLearnedWords(date: string, query: string = '', offset: number = 0): Promise<LearnedWord[]> {
+    return this.repository.getLearnedWords(date, query, offset, 50, this.getSettings().currentBookId);
+  }
+
+  getChallengeWords(limit: number = 10): Promise<Word[]> {
+    return this.repository.getChallengeWords(limit, this.getSettings().currentBookId);
+  }
+
   setFavorite(id: number, value: boolean): Promise<void> {
     return this.repository.setFlag(id, true, value);
   }
@@ -259,6 +272,7 @@ export class LearningService {
     const previous = await this.repository.getProgress(item.word.id);
     const progress = scheduleReview(previous, result, now);
     const next = this.getSession();
+    next.items[next.index].type = previous.reviewCount === 0 ? 'new' : 'review';
     next.index += 1;
     next.completed += 1;
     await this.repository.record(previous, progress, result, responseMs, next, now);

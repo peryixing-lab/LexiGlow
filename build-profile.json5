@@ -7,11 +7,11 @@
         "material": {
           "certpath": "/Users/thousandmiles/.ohos/config/default_LexiGlow_ibt-zkkGH5Ngzy9OUWWgcdgVibpG3YXo4GPu5K6NX4A=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001AE1FD3F93A610A61DD53351CFD12FB9ABB733940F4901004AFDE1FF707F352B215D7FB94430EC",
+          "keyPassword": "0000001B536889F1D011BB5F45B5E04A703CDBBF46A3181DA65F4B78F706C0BED714D3003D26E2558AC317",
           "profile": "/Users/thousandmiles/.ohos/config/default_LexiGlow_ibt-zkkGH5Ngzy9OUWWgcdgVibpG3YXo4GPu5K6NX4A=.p7b",
           "signAlg": "SHA256withECDSA",
           "storeFile": "/Users/thousandmiles/.ohos/config/default_LexiGlow_ibt-zkkGH5Ngzy9OUWWgcdgVibpG3YXo4GPu5K6NX4A=.p12",
-          "storePassword": "0000001AA95F3D6E876C73467D567EBB1585585611F8A2DE48FA27FF7385A1E7C4257503DEB54EDA1306"
+          "storePassword": "0000001BFE2259CE1EB0D9F54D9A50497B55188CE1A6C2FEEA0BE636057D6319DF151BF18601375A9F1F8F"
         }
       }
     ],

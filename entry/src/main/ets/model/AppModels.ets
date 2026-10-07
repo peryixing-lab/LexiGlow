@@ -14,6 +14,17 @@ export class Word {
   sourceBookId: string = '';
 }
 
+export class LearnedDate {
+  date: string = '';
+  count: number = 0;
+}
+
+export class LearnedWord {
+  word: Word = new Word();
+  firstLearnedAt: number = 0;
+  strength: number = 0;
+}
+
 export class WordBook {
   id: string = '';
   name: string = '';
@@ -89,6 +100,7 @@ export class DaySummary {
   newCount: number = 0;
   reviewCount: number = 0;
   knownCount: number = 0;
+  /** Total learning judgments: newCount + reviewCount. */
   totalCount: number = 0;
   durationMs: number = 0;
 }

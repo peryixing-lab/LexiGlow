@@ -1,7 +1,8 @@
 import { relationalStore } from '@kit.ArkData';
-import { DailyPlan, DaySummary, DictionaryBook, DictionaryCatalog, ReviewRecord, ReviewResult,
+import { DailyPlan, DaySummary, DictionaryBook, DictionaryCatalog, LearnedDate, LearnedWord, ReviewRecord, ReviewResult,
   Statistics, StudyItem, StudySession, Word, WordBook, WordProgress } from '../model/AppModels';
-import { dateKey, shiftedDate, weekStart } from '../utils/TimeUtils';
+import { dateKey, dayStart, shiftedDate, weekStart } from '../utils/TimeUtils';
+import { strengthAfterResult } from '../utils/MemoryUtils';
 import { DatabaseManager, DatabaseTransaction } from './DatabaseManager';
 
 export class LearningRepository {
@@ -26,6 +27,116 @@ export class LearningRepository {
 
   async dictionaryVersion(): Promise<number> {
     return this.scalar("SELECT CAST(value AS INTEGER) FROM app_meta WHERE key='dictionary_version'");
+  }
+
+  /** Restore the product-plan strength rules and totals without changing the saved schedule. */
+  async migrateLearningSemantics(): Promise<void> {
+    await this.database.transaction(async (store: DatabaseTransaction) => {
+      const versionRows = await store.querySql("SELECT value FROM app_meta WHERE key='learning_semantics_version'");
+      let migrated = false;
+      try {
+        migrated = versionRows.goToFirstRow() && Number(versionRows.getString(0)) >= 2;
+      } finally {
+        versionRows.close();
+      }
+      if (migrated) {
+        return;
+      }
+
+      const records: ReviewRecord[] = [];
+      const rows = await store.querySql('SELECT * FROM review_record ORDER BY id ASC');
+      try {
+        while (rows.goToNextRow()) {
+          records.push(this.readRecord(rows));
+        }
+      } finally {
+        rows.close();
+      }
+
+      const progress: WordProgress[] = [];
+      const progressRows = await store.querySql('SELECT * FROM word_progress');
+      try {
+        while (progressRows.goToNextRow()) {
+          progress.push(this.readProgress(progressRows));
+        }
+      } finally {
+        progressRows.close();
+      }
+
+      // A partial or inconsistent history cannot reconstruct the current strength safely.
+      const recordCounts = new Map<number, number>();
+      const originalStrengths = new Map<number, number>();
+      const brokenWords = new Set<number>();
+      for (const record of records) {
+        const previousStrength = originalStrengths.get(record.wordId);
+        const validResult = record.result === ReviewResult.FORGET || record.result === ReviewResult.FUZZY ||
+          record.result === ReviewResult.KNOW;
+        let validTransition = false;
+        if (validResult) {
+          const plannedStrength = strengthAfterResult(record.previousStrength, record.result);
+          const legacyStrength = record.result === ReviewResult.KNOW ?
+            Math.min(100, Math.max(50, record.previousStrength + 12)) :
+            (record.result === ReviewResult.FUZZY ? Math.min(100, Math.max(25, record.previousStrength + 5)) :
+              Math.max(0, record.previousStrength - 20));
+          validTransition = record.nextStrength === plannedStrength || record.nextStrength === legacyStrength;
+        }
+        if (!validTransition || record.previousStrength < 0 || record.previousStrength > 100 ||
+          record.nextStrength < 0 || record.nextStrength > 100 ||
+          (previousStrength === undefined ? record.previousStrength !== 0 :
+            record.previousStrength !== previousStrength)) {
+          brokenWords.add(record.wordId);
+        }
+        recordCounts.set(record.wordId, (recordCounts.get(record.wordId) || 0) + 1);
+        originalStrengths.set(record.wordId, record.nextStrength);
+      }
+      const validWords = new Set<number>();
+      for (const saved of progress) {
+        const recordCount = recordCounts.get(saved.wordId);
+        if (recordCount !== undefined && recordCount === saved.reviewCount &&
+          !brokenWords.has(saved.wordId) && originalStrengths.get(saved.wordId) === saved.strength) {
+          validWords.add(saved.wordId);
+        }
+      }
+
+      const strengths = new Map<number, number>();
+      const firstMasteredAt = new Map<number, number>();
+      for (const record of records) {
+        if (!validWords.has(record.wordId)) {
+          continue;
+        }
+        const saved = strengths.get(record.wordId);
+        const previousStrength = saved === undefined ? record.previousStrength : saved;
+        const nextStrength = strengthAfterResult(previousStrength, record.result);
+        if (record.previousStrength !== previousStrength || record.nextStrength !== nextStrength) {
+          await store.executeSql('UPDATE review_record SET previous_strength=?,next_strength=? WHERE id=?',
+            [previousStrength, nextStrength, record.id]);
+        }
+        strengths.set(record.wordId, nextStrength);
+        if (nextStrength >= 75 && !firstMasteredAt.has(record.wordId)) {
+          firstMasteredAt.set(record.wordId, record.reviewAt);
+        }
+      }
+      for (const saved of progress) {
+        const strength = strengths.get(saved.wordId);
+        if (strength !== undefined && saved.strength !== strength) {
+          await store.executeSql('UPDATE word_progress SET strength=? WHERE word_id=?', [strength, saved.wordId]);
+        }
+      }
+      // The floor-based version could create an early or entirely incorrect mastery event.
+      // Complete histories let us replace its date exactly, or remove a mastery never earned.
+      for (const wordId of validWords.keys()) {
+        const masteredAt = firstMasteredAt.get(wordId);
+        if (masteredAt !== undefined) {
+          await store.executeSql('INSERT INTO mastered_word(word_id,first_mastered_at) VALUES(?,?) ON CONFLICT(word_id) DO UPDATE SET first_mastered_at=excluded.first_mastered_at',
+            [wordId, masteredAt]);
+        } else {
+          await store.executeSql('DELETE FROM mastered_word WHERE word_id=?', [wordId]);
+        }
+      }
+      await store.executeSql('UPDATE daily_summary SET total_count=new_count+review_count');
+      await store.executeSql('INSERT OR REPLACE INTO app_meta(key,value) VALUES(?,?)',
+        ['learning_semantics_version', '2']);
+    });
   }
 
   async importCatalog(catalog: DictionaryCatalog): Promise<void> {
@@ -222,6 +333,120 @@ export class LearningRepository {
     sql += ' ORDER BY w.id LIMIT ?';
     args.push(Math.max(1, Math.min(50000, limit)));
     return this.queryWords(sql, args);
+  }
+
+  private learnedHistoryJoin(): string {
+    return "LEFT JOIN (SELECT word_id,MIN(review_at) AS first_learned_at FROM review_record WHERE item_type='new' GROUP BY word_id) f ON w.id=f.word_id";
+  }
+
+  /** Only the first new-word record establishes a learning date; later reviews never move it. */
+  async getLearnedDates(): Promise<LearnedDate[]> {
+    const rows = await this.store().querySql(`SELECT COALESCE(f.first_learned_at,0) AS first_learned_at FROM word w JOIN word_progress p ON w.id=p.word_id ${this.learnedHistoryJoin()} WHERE p.review_count>0`);
+    const grouped = new Map<string, number>();
+    try {
+      while (rows.goToNextRow()) {
+        const firstLearnedAt = rows.getDouble(0);
+        const validTimestamp = Number.isFinite(firstLearnedAt) && firstLearnedAt > 0 &&
+          firstLearnedAt <= 8640000000000000;
+        const key = validTimestamp ? dateKey(firstLearnedAt) : '';
+        grouped.set(key, (grouped.get(key) || 0) + 1);
+      }
+    } finally {
+      rows.close();
+    }
+    const dates: LearnedDate[] = [];
+    for (const key of grouped.keys()) {
+      const group = new LearnedDate();
+      group.date = key;
+      group.count = grouped.get(key) || 0;
+      dates.push(group);
+    }
+    dates.sort((left: LearnedDate, right: LearnedDate) => {
+      if (left.date === right.date) {
+        return 0;
+      }
+      if (left.date.length === 0) {
+        return 1;
+      }
+      if (right.date.length === 0) {
+        return -1;
+      }
+      return left.date > right.date ? -1 : 1;
+    });
+    return dates;
+  }
+
+  private learnedDateRange(date: string): number[] {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return [];
+    }
+    const year = Number(date.slice(0, 4));
+    const month = Number(date.slice(5, 7));
+    const day = Number(date.slice(8, 10));
+    const parsed = new Date(0);
+    parsed.setHours(0, 0, 0, 0);
+    // setFullYear also handles years below 100 without Date's 1900 offset.
+    parsed.setFullYear(year, month - 1, day);
+    if (!Number.isFinite(parsed.getTime()) || parsed.getFullYear() !== year ||
+      parsed.getMonth() !== month - 1 || parsed.getDate() !== day || dateKey(parsed.getTime()) !== date) {
+      return [];
+    }
+    const start = dayStart(parsed.getTime());
+    const next = new Date(start);
+    next.setDate(next.getDate() + 1);
+    return [start, next.getTime()];
+  }
+
+  async getLearnedWords(date: string, query: string = '', offset: number = 0, limit: number = 50,
+    bookId: string = ''): Promise<LearnedWord[]> {
+    const args: relationalStore.ValueType[] = [bookId];
+    let sql = `SELECT ${this.scopedWordColumns()},CASE WHEN f.first_learned_at>0 AND f.first_learned_at<=8640000000000000 THEN f.first_learned_at ELSE 0 END AS first_learned_at,p.strength FROM word w JOIN word_progress p ON w.id=p.word_id LEFT JOIN word_book_item i ON w.id=i.word_id AND i.book_id=? ${this.learnedHistoryJoin()} WHERE p.review_count>0`;
+    if (date.length === 0) {
+      sql += ' AND (f.first_learned_at IS NULL OR f.first_learned_at<=0 OR f.first_learned_at>8640000000000000)';
+    } else {
+      const range = this.learnedDateRange(date);
+      if (range.length === 0) {
+        throw new Error('请选择有效的学习日期');
+      }
+      sql += ' AND f.first_learned_at>0 AND f.first_learned_at<=8640000000000000 AND f.first_learned_at>=? AND f.first_learned_at<?';
+      args.push(range[0]);
+      args.push(range[1]);
+    }
+    if (query.trim().length > 0) {
+      const needle = query.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+      sql += " AND (COALESCE(i.override_word,w.word) LIKE ? ESCAPE '\\' OR COALESCE(i.override_meaning,w.meaning) LIKE ? ESCAPE '\\')";
+      args.push(`${needle}%`);
+      args.push(`%${needle}%`);
+    }
+    const pageSize = Math.max(1, Math.min(100, Math.floor(Number.isFinite(limit) ? limit : 50)));
+    const pageOffset = Math.max(0, Math.min(Number.MAX_SAFE_INTEGER,
+      Math.floor(Number.isFinite(offset) ? offset : 0)));
+    sql += ' ORDER BY first_learned_at DESC,w.id DESC LIMIT ? OFFSET ?';
+    args.push(pageSize);
+    args.push(pageOffset);
+    const rows = await this.store().querySql(sql, args);
+    const learned: LearnedWord[] = [];
+    try {
+      while (rows.goToNextRow()) {
+        const item = new LearnedWord();
+        item.word = this.readWord(rows);
+        const firstLearnedAt = rows.getDouble(rows.getColumnIndex('first_learned_at'));
+        item.firstLearnedAt = Number.isFinite(firstLearnedAt) && firstLearnedAt > 0 &&
+          firstLearnedAt <= 8640000000000000 ? firstLearnedAt : 0;
+        item.strength = rows.getLong(rows.getColumnIndex('strength'));
+        learned.push(item);
+      }
+    } finally {
+      rows.close();
+    }
+    return learned;
+  }
+
+  /** The challenge is practice only: sampling leaves all learning and review progress untouched. */
+  async getChallengeWords(limit: number = 10, bookId: string = ''): Promise<Word[]> {
+    const count = Math.max(1, Math.min(50, Math.floor(Number.isFinite(limit) ? limit : 10)));
+    return this.queryWords(`SELECT ${this.scopedWordColumns()} FROM word w JOIN word_progress p ON w.id=p.word_id LEFT JOIN word_book_item i ON w.id=i.word_id AND i.book_id=? WHERE p.review_count>0 AND LENGTH(TRIM(COALESCE(i.override_meaning,w.meaning)))>0 ORDER BY RANDOM() LIMIT ?`,
+      [bookId, count]);
   }
 
   async getUnlearned(bookId: string, limit: number): Promise<Word[]> {

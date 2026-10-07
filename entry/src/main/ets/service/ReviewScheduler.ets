@@ -1,4 +1,5 @@
 import { ReviewResult, WordProgress } from '../model/AppModels';
+import { strengthAfterResult } from '../utils/MemoryUtils';
 
 /** Fixed intervals from the product plan. Timestamps always use milliseconds. */
 export function baseIntervalMinutes(level: number): number {
@@ -10,20 +11,17 @@ export function scheduleReview(previous: WordProgress, result: ReviewResult, now
   const next = new WordProgress();
   next.wordId = previous.wordId;
   next.level = previous.level;
-  next.strength = previous.strength;
+  next.strength = strengthAfterResult(previous.strength, result);
   next.favorite = previous.favorite;
   next.isNewWord = previous.isNewWord;
   let intervalMinutes = 10;
   if (result === ReviewResult.FORGET) {
     next.level = Math.max(0, next.level - 1);
-    next.strength = Math.max(0, next.strength - 20);
     intervalMinutes = next.level === 0 ? 10 : 720;
   } else if (result === ReviewResult.FUZZY) {
-    next.strength = Math.min(100, next.strength + 5);
-    intervalMinutes = Math.max(1, Math.round(baseIntervalMinutes(next.level) * 0.6));
+    intervalMinutes = Math.round(baseIntervalMinutes(next.level) * 0.6);
   } else if (result === ReviewResult.KNOW) {
     next.level += 1;
-    next.strength = Math.min(100, next.strength + 12);
     intervalMinutes = baseIntervalMinutes(next.level);
   } else {
     throw new Error('无效的记忆判断');

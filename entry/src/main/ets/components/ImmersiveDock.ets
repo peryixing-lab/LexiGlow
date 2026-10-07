@@ -1,5 +1,6 @@
 import { common } from '@kit.AbilityKit';
-import { uiMaterial, window } from '@kit.ArkUI';
+import { accessibility } from '@kit.AccessibilityKit';
+import { curves, uiMaterial, window } from '@kit.ArkUI';
 
 /** Standard ArkUI floating tabs; the system maps the material to device capability. */
 @ComponentV2
@@ -11,14 +12,39 @@ export struct ImmersiveDock {
   @BuilderParam statisticsContent: () => void = this.emptyContent;
   @BuilderParam profileContent: () => void = this.emptyContent;
   @Local immersiveSupported: boolean = false;
-  private readonly controller: TabsController = new TabsController();
+  @Local reduceMotion: boolean = false;
   private readonly nativeMaterial: uiMaterial.ImmersiveMaterial = new uiMaterial.ImmersiveMaterial({});
+  private readonly tabSpring: curves.ICurve = curves.springMotion(0.30, 0.82);
+  private animationReduceListening: boolean = false;
+  private readonly animationReduceListener: (enabled: boolean) => void = (enabled: boolean): void => {
+    this.reduceMotion = enabled;
+  };
 
   aboutToAppear(): void {
     try {
       this.immersiveSupported = uiMaterial.isImmersiveMaterialSupported();
     } catch {
       this.immersiveSupported = false;
+    }
+    try {
+      this.reduceMotion = accessibility.isAnimationReduceEnabledSync();
+    } catch {
+      this.reduceMotion = false;
+    }
+    try {
+      accessibility.onAnimationReduceStateChange(this.animationReduceListener);
+      this.animationReduceListening = true;
+    } catch {
+      this.animationReduceListening = false;
+    }
+  }
+
+  aboutToDisappear(): void {
+    if (this.animationReduceListening) {
+      try {
+        accessibility.offAnimationReduceStateChange(this.animationReduceListener);
+      } catch {}
+      this.animationReduceListening = false;
     }
   }
 
@@ -45,11 +71,6 @@ export struct ImmersiveDock {
     }
   }
 
-  @Monitor('selectedIndex')
-  syncSelectedIndex(): void {
-    this.controller.changeIndex(this.boundedIndex());
-  }
-
   private boundedIndex(): number {
     return Math.max(0, Math.min(3, Math.floor(this.selectedIndex)));
   }
@@ -74,7 +95,7 @@ export struct ImmersiveDock {
 
   build() {
     Stack() {
-      Tabs({ barPosition: BarPosition.End, index: this.boundedIndex(), controller: this.controller }) {
+      Tabs({ barPosition: BarPosition.End, index: this.boundedIndex() }) {
         TabContent() {
           this.homeContent()
         }.expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
@@ -98,6 +119,9 @@ export struct ImmersiveDock {
       .padding({ top: this.topInsetVp(), bottom: this.navInsetVp() })
       .barHeight(56).barOverlap(true).vertical(false)
       .barMode(BarMode.Fixed).scrollable(false)
+      .animationMode(this.reduceMotion ? AnimationMode.NO_ANIMATION : AnimationMode.CONTENT_FIRST_WITH_JUMP)
+      .animationDuration(this.reduceMotion ? 0 : 260)
+      .animationCurve(this.reduceMotion ? Curve.Linear : this.tabSpring)
       .barFloatingStyle({
         barBottomMargin: 8,
         systemMaterial: this.immersiveSupported ? this.nativeMaterial : undefined,

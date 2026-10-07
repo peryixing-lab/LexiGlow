@@ -1,6 +1,6 @@
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import { pasteboard } from '@kit.BasicServicesKit';
-import { uiMaterial } from '@kit.ArkUI';
+import { LengthMetrics, uiMaterial } from '@kit.ArkUI';
 import { AppSnapshot, Word, WordProgress, WordBook, ReviewRecord, ReviewResult, StudySession, StudyItem, UserSettings, DaySummary } from '../model/AppModels';
 import { LearningService } from '../service/LearningService';
 import { AudioService } from '../service/AudioService';
@@ -8,6 +8,11 @@ import { FormService } from '../service/FormService';
 import { ReminderService } from '../service/ReminderService';
 import { TransferService } from '../service/TransferService';
 import { ImmersiveDock } from '../components/ImmersiveDock';
+import { dailyPlanProgress, isDailyPlanComplete } from '../utils/DailyPlanUtils';
+import { strengthName } from '../utils/MemoryUtils';
+import { MeaningChallengePage } from './MeaningChallengePage';
+import { LearnedWordsPage } from './LearnedWordsPage';
+import { bottomContentOffset } from '../utils/SafeAreaUtils';
 
 interface ActionOptions { label: string; action: () => void; primary: boolean; }
 interface HeadingOptions { title: string; subtitle: string; id?: string; }
@@ -503,16 +508,27 @@ struct Index {
   }
 
   progressValue(): number {
-    const plan = this.snapshot.plan;
-    const total = plan.newTarget + plan.reviewTarget;
-    return total > 0 ? Math.min(100, (plan.newDone + plan.reviewDone) / total * 100) : 100;
+    return dailyPlanProgress(this.snapshot.plan);
+  }
+
+  todayComplete(): boolean {
+    return isDailyPlanComplete(this.snapshot.plan);
+  }
+
+  todayActionLabel(): string {
+    if (this.todayComplete()) { return '今天已完成，再学一点  →'; }
+    return '继续学习  →';
   }
 
   strengthName(strength: number): string {
-    return strength >= 75 ? '掌握' : strength >= 50 ? '熟悉' : strength >= 25 ? '模糊' : '陌生';
+    return strengthName(strength);
   }
 
   resultName(result: number): string { return result === 2 ? '认识' : result === 1 ? '模糊' : '不认识'; }
+
+  completedCount(type: string): number {
+    return this.session.items.slice(0, this.session.index).filter((item: StudyItem) => item.type === type).length;
+  }
 
   @Builder
   Action($$: ActionOptions) {
@@ -533,9 +549,10 @@ struct Index {
 
   @Builder
   BackHeader($$: HeaderOptions) {
-    Row() {
-      Button('‹', { type: ButtonType.Circle }).fontSize(28).width(40).height(40)
-        .backgroundColor(Color.Transparent).fontColor($r('app.color.text_primary'))
+    Row({ space: 12 }) {
+      Button({ type: ButtonType.Circle, buttonStyle: ButtonStyleMode.TEXTUAL }) {
+        SymbolGlyph($r('sys.symbol.chevron_left')).fontSize(22).fontColor([$r('app.color.text_primary')])
+      }.width(40).height(40).padding(0)
         .systemMaterial(this.titleButtonMaterial).accessibilityText('返回').onClick($$.action)
       Text($$.title).fontSize(18).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).layoutWeight(1)
         .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -664,14 +681,18 @@ struct Index {
         Progress({ value: this.progressValue(), total: 100, type: ProgressType.Linear })
           .color($r('app.color.brand_ink')).backgroundColor($r('app.color.glow_track')).style({ strokeWidth: 6 })
         Row() {
-          Text(`新词 ${this.snapshot.plan.newDone}/${this.snapshot.plan.newTarget} · 复习 ${this.snapshot.plan.reviewDone}/${this.snapshot.plan.reviewTarget}`)
+          Text(`新词 ${this.snapshot.plan.newDone}/${this.snapshot.plan.newTarget} · 复习 ${this.snapshot.plan.reviewDone}/${this.snapshot.plan.reviewTarget} 次`)
             .fontSize(13).fontColor($r('app.color.glow_secondary'))
           Blank()
           Text(`约 ${this.snapshot.plan.estimatedMinutes} 分钟`).fontSize(13).fontColor($r('app.color.glow_secondary'))
         }.width('100%')
-        this.Action({ label: this.progressValue() >= 100 ? '今天已点亮，再学一点  →' : '继续学习  →', action: () => { this.beginStudy(this.progressValue() >= 100 ? 'quick' : 'today'); }, primary: true })
+        this.Action({ label: this.todayActionLabel(), action: () => { this.beginStudy(this.todayComplete() ? 'quick' : 'today'); }, primary: true })
       }.padding(24).width('100%').backgroundColor($r('app.color.glow')).borderRadius(28)
-      Row({ space: 12 }) {
+      Flex({
+        direction: FlexDirection.Row,
+        alignItems: ItemAlign.Stretch,
+        space: { main: LengthMetrics.vp(12) }
+      }) {
         Button({ type: ButtonType.Normal }) {
           Column({ space: 9 }) {
             Text('↗').fontSize(26).fontColor($r('app.color.text_primary'))
@@ -688,6 +709,18 @@ struct Index {
         }.layoutWeight(1).backgroundColor($r('app.color.surface')).borderRadius(24)
           .onClick(() => { this.openWord(this.snapshot.dailyWord.id); })
       }.width('100%')
+      Button({ type: ButtonType.Normal }) {
+        Row({ space: 14 }) {
+          Text('译').fontSize(26).fontWeight(FontWeight.Medium).fontColor($r('app.color.success'))
+          Column({ space: 7 }) {
+            Text('中文释义挑战').fontSize(18).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
+            Text('从已学单词中出题，写出一个意思就过关').fontSize(12).lineHeight(20)
+              .fontColor($r('app.color.text_secondary'))
+          }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+          Text('→').fontSize(22).fontColor($r('app.color.text_primary'))
+        }.padding(22).width('100%')
+      }.width('100%').backgroundColor($r('app.color.surface')).borderRadius(24)
+        .onClick(() => { this.pathStack.pushPathByName('MeaningChallenge', ''); })
       Column({ space: 12 }) {
         Text('今天有多忙？').fontSize(14).fontColor($r('app.color.text_secondary'))
         Row({ space: 8 }) {
@@ -710,6 +743,9 @@ struct Index {
     Column({ space: 18 }) {
       this.PageHeading({ id: 'tab-heading-1', title: '每一本，都慢慢读。', subtitle: '词书可以切换，记忆不会重新归零。' })
       this.Action({ label: '⌕  搜索单词或中文释义', action: () => { this.openList('搜索词典', '', 'all'); }, primary: false })
+      this.Action({ label: `已学单词 ${this.snapshot.stats.totalLearned} · 按日期查看  →`, action: () => {
+        this.pathStack.pushPathByName('LearnedWords', '');
+      }, primary: false })
       Text('正在学习').fontSize(13).fontColor($r('app.color.text_secondary')).width('100%')
       ForEach(this.snapshot.books, (book: WordBook) => {
         Column({ space: 14 }) {
@@ -729,7 +765,8 @@ struct Index {
             .color($r('app.color.success')).backgroundColor($r('app.color.soft_surface')).style({ strokeWidth: 4 })
           Text(book.description).fontSize(12).fontColor(book.id === this.snapshot.settings.currentBookId ? $r('app.color.glow_secondary') : $r('app.color.text_secondary')).lineHeight(20)
             .width('100%').maxLines(3)
-          Button('浏览单词  →').fontSize(14).height(40).backgroundColor(Color.Transparent)
+          Button('浏览单词  →', { type: ButtonType.Normal, buttonStyle: ButtonStyleMode.TEXTUAL })
+            .fontSize(14).height(40).systemMaterial(uiMaterial.Material.empty).backgroundColor(Color.Transparent)
             .fontColor($r('app.color.text_primary')).onClick(() => { this.openList(book.name, book.id, 'all'); })
         }.width('100%').padding(22).backgroundColor(book.id === this.snapshot.settings.currentBookId ?
           $r('app.color.glow') : $r('app.color.surface')).borderRadius(24)
@@ -757,7 +794,7 @@ struct Index {
         Text('今天的一点光').fontSize(19).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
         Row() {
           this.SmallStat({ value: `${this.snapshot.plan.newDone}`, label: '新词' })
-          this.SmallStat({ value: `${this.snapshot.plan.reviewDone}`, label: '复习' })
+          this.SmallStat({ value: `${this.snapshot.plan.reviewDone}`, label: '复习次数' })
           this.SmallStat({ value: `${Math.round(this.snapshot.stats.successRate)}%`, label: '本周复习成功率' })
         }.width('100%')
       }.alignItems(HorizontalAlign.Start).padding(24).width('100%').backgroundColor($r('app.color.surface')).borderRadius(24)
@@ -779,7 +816,7 @@ struct Index {
         }, (index: number) => `${index}`)
       }.padding(24).width('100%').backgroundColor($r('app.color.surface')).borderRadius(24)
       Column({ space: 18 }) {
-        Text('最近 7 天').fontSize(19).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
+        Text('最近 7 天 · 学习与复习').fontSize(19).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
         Row({ space: 8 }) {
           ForEach(this.snapshot.stats.days.slice(-7), (day: DaySummary) => {
             Column({ space: 9 }) {
@@ -798,9 +835,9 @@ struct Index {
           ForEach(this.snapshot.stats.days.slice(-28), (day: DaySummary) => {
             GridItem() {
               Text(day.date.slice(8)).fontSize(12).width('100%').height(36).textAlign(TextAlign.Center)
-                .fontColor(day.totalCount > 0 ? $r('app.color.inverse_text') : $r('app.color.text_secondary'))
-                .backgroundColor(day.totalCount > 0 ? $r('app.color.success') : $r('app.color.soft_surface')).borderRadius(8)
-                .accessibilityText(`${day.date} 学习 ${day.totalCount} 词`)
+                .fontColor(day.newCount > 0 || day.reviewCount > 0 ? $r('app.color.inverse_text') : $r('app.color.text_secondary'))
+                .backgroundColor(day.newCount > 0 || day.reviewCount > 0 ? $r('app.color.success') : $r('app.color.soft_surface')).borderRadius(8)
+                .accessibilityText(`${day.date} 新词 ${day.newCount} 个，复习 ${day.reviewCount} 次`)
             }
           }, (day: DaySummary) => JSON.stringify(day))
         }.columnsTemplate('1fr 1fr 1fr 1fr 1fr 1fr 1fr').columnsGap(6).rowsGap(6).height(164)
@@ -863,8 +900,10 @@ struct Index {
   LearnPage() {
     Column() {
       Row() {
-        Button('‹').width(48).height(48).fontSize(28).backgroundColor(Color.Transparent)
-          .fontColor($r('app.color.text_primary')).accessibilityText('保存进度并返回').onClick(() => { this.leaveStudy(); })
+        Button({ type: ButtonType.Circle, buttonStyle: ButtonStyleMode.TEXTUAL }) {
+          SymbolGlyph($r('sys.symbol.chevron_left')).fontSize(24).fontColor([$r('app.color.text_primary')])
+        }.width(48).height(48).padding(0).systemMaterial(this.titleButtonMaterial)
+          .accessibilityText('保存进度并返回').onClick(() => { this.leaveStudy(); })
         Text(`${Math.min(this.session.index + 1, this.session.items.length)} / ${this.session.items.length}`)
           .fontSize(15).fontColor($r('app.color.text_secondary')).layoutWeight(1).textAlign(TextAlign.Center)
         Button(this.currentProgress.favorite ? '★' : '☆').width(48).height(48).fontSize(25)
@@ -908,7 +947,7 @@ struct Index {
           Row({ space: 9 }) {
             this.Judgment('不认识', '早点再见一次', ReviewResult.FORGET)
             this.Judgment('模糊', '再巩固一下', ReviewResult.FUZZY)
-            this.Judgment('认识', '点亮一点记忆', ReviewResult.KNOW)
+            this.Judgment('认识', '能回忆核心意思', ReviewResult.KNOW)
           }.width('100%')
         } else { this.Action({ label: '显示释义', action: () => { this.showAnswer(); }, primary: true }); }
         Text('忘记也没关系，我们会安排下次见面。').fontSize(12).fontColor($r('app.color.text_secondary'))
@@ -934,7 +973,7 @@ struct Index {
         Text('✦').fontSize(60).fontColor($r('app.color.success')).margin({ top: 40 })
         Text('今天的光，已经亮起来。').fontSize(27).fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary')).textAlign(TextAlign.Center)
-        Text(`完成 ${this.session.index} 个词的回忆\n每次判断，都在安排下一次更好的相遇。`)
+        Text(`学习新词 ${this.completedCount('new')} 个 · 复习 ${this.completedCount('review')} 次\n每次判断，都在安排下一次更好的相遇。`)
           .fontSize(15).lineHeight(25).textAlign(TextAlign.Center).fontColor($r('app.color.text_secondary'))
         Column({ space: 14 }) {
           Text('再看一眼，今天遇见的词').fontSize(15).fontColor($r('app.color.text_secondary')).width('100%')
@@ -956,57 +995,62 @@ struct Index {
 
   @Builder
   WordListPage() {
-    Column({ space: 10 }) {
-      TextInput({ text: this.searchText, placeholder: '输入英文单词或中文释义' }).height(52).fontSize(16)
-        .backgroundColor($r('app.color.surface')).fontColor($r('app.color.text_primary')).borderRadius(18)
-        .margin({ left: 24, right: 24 }).onChange((value: string) => { this.scheduleSearch(value); })
-      if (this.listBookId.startsWith('custom')) {
-        Row({ space: 8 }) {
-          TextInput({ text: this.renameText, placeholder: '自定义词书名称' }).height(44).layoutWeight(1)
-            .backgroundColor($r('app.color.surface')).fontColor($r('app.color.text_primary'))
-            .onChange((value: string) => { this.renameText = value; })
-          Button('改名').height(44).backgroundColor($r('app.color.brand_ink')).fontColor($r('app.color.inverse_text'))
-            .enabled(!this.busy).onClick(() => { this.renameBook(); })
-        }.padding({ left: 24, right: 24 }).width('100%')
-      }
-      if (this.listBookId) {
-        Row({ space: 8 }) {
-          this.Chip({ label: '导出 JSON', selected: false, action: () => { this.exportBook('json'); } })
-          this.Chip({ label: '导出 CSV', selected: false, action: () => { this.exportBook('csv'); } })
-          this.Chip({ label: '导出 TXT', selected: false, action: () => { this.exportBook('txt'); } })
-        }.padding({ left: 24, right: 24 }).width('100%')
-      }
-      if (this.loadingWords) {
-        Text('正在查找…').fontSize(14).fontColor($r('app.color.text_secondary')).padding(20)
-      }
-      List({ space: 10 }) {
-        ForEach(this.words, (word: Word) => {
-          ListItem() {
-            Row({ space: 12 }) {
-              Column({ space: 7 }) {
-                Text(word.word).fontSize(21).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
-                Text(word.meaning).fontSize(14).fontColor($r('app.color.text_secondary')).maxLines(2)
-              }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-              Text('›').fontSize(26).fontColor($r('app.color.text_secondary'))
-            }.padding(21).width('100%').backgroundColor($r('app.color.surface')).borderRadius(21)
-              .onClick(() => { this.openWord(word.id, this.listBookId); })
+    List({ space: 10 }) {
+      ListItem() {
+        Column({ space: 10 }) {
+          TextInput({ text: this.searchText, placeholder: '输入英文单词或中文释义' }).height(52).fontSize(16)
+            .backgroundColor($r('app.color.surface')).fontColor($r('app.color.text_primary')).borderRadius(18)
+            .onChange((value: string) => { this.scheduleSearch(value); })
+          if (this.listBookId.startsWith('custom')) {
+            Row({ space: 8 }) {
+              TextInput({ text: this.renameText, placeholder: '自定义词书名称' }).height(44).layoutWeight(1)
+                .backgroundColor($r('app.color.surface')).fontColor($r('app.color.text_primary'))
+                .onChange((value: string) => { this.renameText = value; })
+              Button('改名').height(44).backgroundColor($r('app.color.brand_ink')).fontColor($r('app.color.inverse_text'))
+                .enabled(!this.busy).onClick(() => { this.renameBook(); })
+            }.width('100%')
           }
-        }, (word: Word) => JSON.stringify(word))
-        if (!this.loadingWords && this.words.length === 0) {
-          ListItem() {
-            Column({ space: 14 }) {
-              Text('还没有遇见这个词。').fontSize(20).fontColor($r('app.color.text_primary'))
-              Text('可以导入自定义词书，把它加入下一段学习。').fontSize(14).lineHeight(24)
-                .fontColor($r('app.color.text_secondary')).textAlign(TextAlign.Center)
-              this.Action({ label: '添加自定义词书', action: () => { this.pathStack.pushPathByName('Import', ''); }, primary: false })
-            }.padding({ top: 60, bottom: 30 }).width('100%')
+          if (this.listBookId) {
+            Row({ space: 8 }) {
+              this.Chip({ label: '导出 JSON', selected: false, action: () => { this.exportBook('json'); } })
+              this.Chip({ label: '导出 CSV', selected: false, action: () => { this.exportBook('csv'); } })
+              this.Chip({ label: '导出 TXT', selected: false, action: () => { this.exportBook('txt'); } })
+            }.width('100%')
           }
+          if (this.loadingWords) {
+            Text('正在查找…').fontSize(14).fontColor($r('app.color.text_secondary')).padding(20)
+          }
+        }.width('100%')
+      }
+      ForEach(this.words, (word: Word) => {
+        ListItem() {
+          Row({ space: 12 }) {
+            Column({ space: 7 }) {
+              Text(word.word).fontSize(21).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
+              Text(word.meaning).fontSize(14).fontColor($r('app.color.text_secondary')).maxLines(2)
+            }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+            Text('›').fontSize(26).fontColor($r('app.color.text_secondary'))
+          }.padding(21).width('100%').backgroundColor($r('app.color.surface')).borderRadius(21)
+            .onClick(() => { this.openWord(word.id, this.listBookId); })
         }
-        if (this.words.length >= 80) {
-          ListItem() { Text('显示前 80 个结果，输入更多字符缩小范围。').fontSize(12).fontColor($r('app.color.text_secondary')).padding(12) }
+      }, (word: Word) => JSON.stringify(word))
+      if (!this.loadingWords && this.words.length === 0) {
+        ListItem() {
+          Column({ space: 14 }) {
+            Text('还没有遇见这个词。').fontSize(20).fontColor($r('app.color.text_primary'))
+            Text('可以导入自定义词书，把它加入下一段学习。').fontSize(14).lineHeight(24)
+              .fontColor($r('app.color.text_secondary')).textAlign(TextAlign.Center)
+            this.Action({ label: '添加自定义词书', action: () => { this.pathStack.pushPathByName('Import', ''); }, primary: false })
+          }.padding({ top: 60, bottom: 30 }).width('100%')
         }
-      }.padding({ left: 24, right: 24, top: 10, bottom: 24 }).width('100%').layoutWeight(1).scrollBar(BarState.Off)
-    }.padding({ top: 56 }).height('100%').width('100%').backgroundColor($r('app.color.background'))
+      }
+      if (this.words.length >= 80) {
+        ListItem() { Text('显示前 80 个结果，输入更多字符缩小范围。').fontSize(12).fontColor($r('app.color.text_secondary')).padding(12) }
+      }
+    }.padding({ left: 24, right: 24 }).width('100%').height('100%').scrollBar(BarState.Off)
+      .contentStartOffset(66).contentEndOffset(bottomContentOffset(this.getUIContext()))
+      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+      .backgroundColor($r('app.color.background'))
   }
 
   @Builder
@@ -1201,6 +1245,18 @@ struct Index {
       else if (name === 'Import') { this.ImportPage(); }
       else if (name === 'ImportPreview') { this.ImportPreviewPage(); }
       else if (name === 'EditWord') { this.EditWordPage(); }
+      else if (name === 'MeaningChallenge') {
+        MeaningChallengePage({
+          onLearn: () => { this.pathStack.pop(); this.beginStudy('today'); },
+          onLearnedWords: () => { this.returnToLearnedWords(); }
+        })
+      }
+      else if (name === 'LearnedWords') {
+        LearnedWordsPage({
+          onOpenWord: (id: number, bookId: string) => { this.openWord(id, bookId); },
+          onChallenge: () => { this.pathStack.pushPathByName('MeaningChallenge', ''); }
+        })
+      }
       else { this.PrivacyPage(); }
     }.hideTitleBar(name === 'Learn' || name === 'Summary').hideBackButton(true)
       .title({ builder: () => { this.RouteTitleBar(name); }, height: 56 }, {
@@ -1208,7 +1264,8 @@ struct Index {
         scrollEffectOptions: { scrollEffectType: ScrollEffectType.GRADUAL_BLUR }
       })
       .backgroundColor($r('app.color.background'))
-      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP])
+      .expandSafeArea([SafeAreaType.SYSTEM], name === 'WordList' || name === 'LearnedWords' ?
+        [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM] : [SafeAreaEdge.TOP])
       .onBackPressed(() => {
         if (name === 'Learn') { this.leaveStudy(); return true; }
         if (name === 'Summary') { this.leaveSummary(); return true; }
@@ -1239,9 +1296,13 @@ struct Index {
       Text(this.titleCollapsed[index] ? ['今日学习', '词库', '学习统计', '我的设置'][index] : 'LexiGlow')
         .fontSize(this.titleCollapsed[index] ? 18 : 24).fontWeight(FontWeight.Bold)
         .fontColor($r('app.color.text_primary')).layoutWeight(1).maxLines(1)
-      Button(index === 1 ? '+' : index === 2 ? '↗' : index === 3 ? '◐' : '⌕', { type: ButtonType.Circle })
-        .width(40).height(40).fontSize(24).fontColor($r('app.color.brand_ink'))
-        .backgroundColor(Color.Transparent).systemMaterial(this.titleButtonMaterial)
+      Button({ type: ButtonType.Circle, buttonStyle: ButtonStyleMode.TEXTUAL }) {
+        if (index === 0) {
+          SymbolGlyph($r('sys.symbol.magnifyingglass')).fontSize(22).fontColor([$r('app.color.brand_ink')])
+        } else {
+          Text(index === 1 ? '+' : index === 2 ? '↗' : '◐').fontSize(24).fontColor($r('app.color.brand_ink'))
+        }
+      }.width(40).height(40).padding(0).systemMaterial(this.titleButtonMaterial)
         .accessibilityText(index === 1 ? '导入自定义词书' : index === 2 ? '导出学习数据' : index === 3 ? '切换深浅色' : '搜索单词')
         .onClick(() => {
           if (index === 1) { this.pathStack.pushPathByName('Import', ''); }
@@ -1263,6 +1324,8 @@ struct Index {
     if (name === 'Import') { return '导入自定义词书'; }
     if (name === 'ImportPreview') { return '确认导入内容'; }
     if (name === 'EditWord') { return this.editIndex >= 0 ? '补充 / 修改导入单词' : '编辑自定义词条'; }
+    if (name === 'MeaningChallenge') { return '中文释义挑战'; }
+    if (name === 'LearnedWords') { return '已学单词'; }
     return '数据与隐私';
   }
 
@@ -1274,6 +1337,14 @@ struct Index {
   private leaveRoute(name: string): void {
     this.pathStack.pop();
     if (name === 'WordDetail') { this.search(); }
+  }
+
+  private returnToLearnedWords(): void {
+    if (this.pathStack.getAllPathName().indexOf('LearnedWords') >= 0) {
+      this.pathStack.popToName('LearnedWords');
+    } else {
+      this.pathStack.replacePathByName('LearnedWords', '');
+    }
   }
 
   @Builder

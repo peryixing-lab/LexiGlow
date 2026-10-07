@@ -38,6 +38,8 @@ Tabs({ barPosition: BarPosition.End, index: this.boundedIndex(), controller: thi
 
 浮栏高 56 vp，底部间距 8 vp。透明色与零高度关闭浮栏下方的渐变颜色遮罩，不关闭栏本体材质。`scrollable(false)` 禁止横向手势切换页签，避免正文滚动和学习交互产生冲突；点击四个原生页签仍正常切换。
 
+四个主页面切换使用原生 `Tabs.animationCurve(curves.springMotion(0.30, 0.82))`，产生轻微落位回弹；`CONTENT_FIRST_WITH_JUMP` 让跨页点击直接切向目标，避免经过中间页面。`animationDuration(260)` 开启切换动效，弹簧实际时长由物理参数决定。只保留 `index` 状态绑定，移除重复的 `TabsController.changeIndex` 路径。同步读取系统减弱动画设置，并使用同一具名监听注册、注销；减弱动画开启时采用 `NO_ANIMATION`、零时长。子页面继续使用系统 `Navigation` 入栈、返回过渡。
+
 SDK 参数为 `TabsOptions` 的 `barPosition/index/controller`，以及 `TabsAttribute.barFloatingStyle(style: Optional<FloatingTabBarStyle>)`。`FloatingTabBarStyle.systemMaterial` 类型是 `uiMaterial.ImmersiveMaterial`，`maskColor` 和 `maskHeight` 是同一配置对象的直接字段。
 
 ## 底部绘制与顶部沉浸
@@ -59,6 +61,10 @@ SDK 参数为 `TabsOptions` 的 `barPosition/index/controller`，以及 `TabsAtt
 滚动正文使用 `contentStartOffset` 为标题栏预留起始位置，数值与对应栏高和既有安全区布局一致。起始偏移用于内容排布，不能替代状态栏或挖孔避让；顶部沉浸只扩展绘制区域到状态栏下方，标题文字、正文首行仍布局在安全区内，不与挖孔重叠。
 
 四个主页面各自使用原生 `Navigation` 标题栏。正文大标题滚出顶部后，栏内 `LexiGlow` 收束为当前页面名称；标题栏保持 56 vp，右侧 40 vp 圆形操作按钮使用 `ULTRA_THIN` 系统材质、交互变形和主题光效。导入、词条详情、编辑等子页面使用 `NavDestination` 标题栏；学习和结算继续采用原有操作栏。返回标题限制为一行，长词书名称自动省略。
+
+首页搜索与各页返回使用系统 `SymbolGlyph` 图标，圆形按钮显式采用 `TEXTUAL` 样式和零内部 padding，再配置 `ULTRA_THIN` 材质，避免默认强调蓝底和字体字符的字形偏移。返回按钮与标题保留 12 vp 间距。“浏览单词”使用文本按钮并通过 `uiMaterial.Material.empty` 关闭组件材质，保留词书卡片自身背景。
+
+词库浏览页以完整 `List` 承载搜索、导出和词条，控件作为首个 `ListItem` 随内容一起滚动。已学单词页采用相同结构，统计、日期选择、日期快捷项和搜索都位于首个 `ListItem`，单词不再在固定搜索框下方裁切。顶部通过 `contentStartOffset(66)` 避让标题，保留原生渐进模糊；去掉列表的上下 padding，底部改为 `contentEndOffset`。浏览页与已学列表的 `NavDestination` 和列表均扩展系统顶部、底部绘制区，最后一项的滚动留白按导航指示条实际高度加 24 vp 计算，避免留白缩小视口后形成纯色硬截断。
 
 深色主题采用中性炭黑背景、`#FFD45C` 主金黄色与 `#665000` 暖黄色卡片。黄色区域的辅助字使用专用 `#D0CBC1`，与卡片对比约 4.79:1；主文字对比约 6.86:1。普通卡片继续使用独立灰色辅助字。
 
