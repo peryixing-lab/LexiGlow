@@ -5,7 +5,9 @@
     "description": "$string:module_desc",
     "mainElement": "EntryAbility",
     "deviceTypes": [
-      "phone"
+      "phone",
+      "tablet",
+      "2in1"
     ],
     "deliveryWithInstall": true,
     "installationFree": false,
@@ -23,6 +25,7 @@
         "startWindowIcon": "$media:ciying_icon",
         "startWindowBackground": "$color:start_window_background",
         "launchType": "singleton",
+        "orientation": "auto_rotation",
         "exported": true,
         "skills": [
           {

@@ -1,6 +1,6 @@
-import { common } from '@kit.AbilityKit';
 import { accessibility } from '@kit.AccessibilityKit';
-import { curves, uiMaterial, window } from '@kit.ArkUI';
+import { curves, uiMaterial } from '@kit.ArkUI';
+import { AdaptiveWindowState, adaptiveWindowState } from '../utils/AdaptiveWindow';
 
 /** Standard ArkUI floating tabs; the system maps the material to device capability. */
 @ComponentV2
@@ -13,6 +13,8 @@ export struct ImmersiveDock {
   @BuilderParam profileContent: () => void = this.emptyContent;
   @Local immersiveSupported: boolean = false;
   @Local reduceMotion: boolean = false;
+  @Param availableWidth: number = 0;
+  @Local windowState: AdaptiveWindowState = adaptiveWindowState();
   private readonly nativeMaterial: uiMaterial.ImmersiveMaterial = new uiMaterial.ImmersiveMaterial({});
   private readonly tabSpring: curves.ICurve = curves.springMotion(0.30, 0.82);
   private animationReduceListening: boolean = false;
@@ -48,27 +50,8 @@ export struct ImmersiveDock {
     }
   }
 
-  /**
-   * The Tabs ignores the layout safe area so the floating bar keeps its correct anchor and the
-   * title bar blur can cover the status bar; the page content is kept inside the safe area by
-   * padding with the measured avoid-area insets.
-   */
-  private topInsetVp(): number {
-    return this.avoidInsetVp(window.AvoidAreaType.TYPE_SYSTEM, true);
-  }
-
-  private navInsetVp(): number {
-    return this.avoidInsetVp(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR, false);
-  }
-
-  private avoidInsetVp(type: window.AvoidAreaType, top: boolean): number {
-    try {
-      const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
-      const area = context.windowStage.getMainWindowSync().getWindowAvoidArea(type);
-      return this.getUIContext().px2vp(top ? area.topRect.height : area.bottomRect.height);
-    } catch {
-      return 0;
-    }
+  private useSidebar(): boolean {
+    return this.availableWidth >= 840;
   }
 
   private boundedIndex(): number {
@@ -77,7 +60,7 @@ export struct ImmersiveDock {
 
   private tabStyle(icon: Resource, label: string): BottomTabBarStyle {
     return new BottomTabBarStyle(icon, label)
-      .layoutMode(LayoutMode.VERTICAL)
+      .layoutMode(this.useSidebar() ? LayoutMode.HORIZONTAL : LayoutMode.VERTICAL)
       .iconStyle({
         selectedColor: $r('app.color.brand_ink'),
         unselectedColor: $r('app.color.text_secondary')
@@ -95,7 +78,7 @@ export struct ImmersiveDock {
 
   build() {
     Stack() {
-      Tabs({ barPosition: BarPosition.End, index: this.boundedIndex() }) {
+      Tabs({ barPosition: this.useSidebar() ? BarPosition.Start : BarPosition.End, index: this.boundedIndex() }) {
         TabContent() {
           this.homeContent()
         }.expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
@@ -114,15 +97,18 @@ export struct ImmersiveDock {
           .tabBar(this.tabStyle($r('app.media.dock_profile'), '我的'))
       }
       .width('100%').height(LayoutPolicy.matchParent)
-      .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.TOP, LayoutSafeAreaEdge.BOTTOM])
+      .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], this.windowState.keepSystemTop ?
+        [LayoutSafeAreaEdge.BOTTOM] : [LayoutSafeAreaEdge.TOP, LayoutSafeAreaEdge.BOTTOM])
       .expandSafeArea([SafeAreaType.SYSTEM])
-      .padding({ top: this.topInsetVp(), bottom: this.navInsetVp() })
-      .barHeight(56).barOverlap(true).vertical(false)
-      .barMode(BarMode.Fixed).scrollable(false)
+      .padding({ top: this.windowState.keepSystemTop ? 0 : this.windowState.topInset, bottom: this.windowState.bottomInset })
+      .barHeight(this.useSidebar() ? '100%' : 56).barWidth(this.useSidebar() ? 168 : '100%')
+      .barOverlap(!this.useSidebar()).vertical(this.useSidebar())
+      .barMode(this.useSidebar() ? BarMode.Scrollable : BarMode.Fixed).scrollable(false)
+      .barBackgroundColor(this.useSidebar() ? $r('app.color.surface') : Color.Transparent)
       .animationMode(this.reduceMotion ? AnimationMode.NO_ANIMATION : AnimationMode.CONTENT_FIRST_WITH_JUMP)
       .animationDuration(this.reduceMotion ? 0 : 260)
       .animationCurve(this.reduceMotion ? Curve.Linear : this.tabSpring)
-      .barFloatingStyle({
+      .barFloatingStyle(this.useSidebar() ? undefined : {
         barBottomMargin: 8,
         systemMaterial: this.immersiveSupported ? this.nativeMaterial : undefined,
         maskColor: Color.Transparent,

@@ -2,8 +2,10 @@ import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.Ab
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { AudioService } from '../service/AudioService';
+import { AdaptiveWindowController } from '../utils/AdaptiveWindow';
 
 export default class EntryAbility extends UIAbility {
+  private windowController: AdaptiveWindowController | undefined = undefined;
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     this.captureRoute(want, false);
     this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
@@ -25,9 +27,18 @@ export default class EntryAbility extends UIAbility {
   onWindowStageCreate(windowStage: window.WindowStage): void {
     windowStage.loadContent('pages/Index', (err) => {
       if (err.code) { hilog.error(0x0000, 'Ciying', 'Page load failed, code %{public}d', err.code); }
+      else {
+        this.windowController = new AdaptiveWindowController(windowStage.getMainWindowSync());
+        this.windowController.start();
+      }
     });
   }
 
+  onWindowStageDestroy(): void {
+    this.windowController?.stop();
+    this.windowController = undefined;
+  }
+
   onBackground(): void { AudioService.getInstance().stop(); }
-  onDestroy(): void { AudioService.getInstance().release(); }
+  onDestroy(): void { this.windowController?.stop(); AudioService.getInstance().release(); }
 }

@@ -1,0 +1,31 @@
+{
+  "module": {
+    "name": "wearable",
+    "type": "entry",
+    "description": "$string:module_desc",
+    "mainElement": "WatchAbility",
+    "deviceTypes": ["wearable"],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "pages": "$profile:main_pages",
+    "abilities": [
+      {
+        "name": "WatchAbility",
+        "srcEntry": "./ets/entryability/WatchAbility.ets",
+        "description": "$string:WatchAbility_desc",
+        "icon": "$media:ciying_icon",
+        "label": "$string:WatchAbility_label",
+        "startWindowIcon": "$media:ciying_icon",
+        "startWindowBackground": "$color:start_window_background",
+        "launchType": "singleton",
+        "exported": true,
+        "skills": [
+          {
+            "entities": ["entity.system.home"],
+            "actions": ["ohos.want.action.home"]
+          }
+        ]
+      }
+    ]
+  }
+}

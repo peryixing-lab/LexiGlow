@@ -13,6 +13,7 @@ import { strengthName } from '../utils/MemoryUtils';
 import { MeaningChallengePage } from './MeaningChallengePage';
 import { LearnedWordsPage } from './LearnedWordsPage';
 import { bottomContentOffset } from '../utils/SafeAreaUtils';
+import { AdaptiveWindowState, adaptiveWindowState } from '../utils/AdaptiveWindow';
 
 interface ActionOptions { label: string; action: () => void; primary: boolean; }
 interface HeadingOptions { title: string; subtitle: string; id?: string; }
@@ -28,6 +29,9 @@ struct Index {
   @Local error: string = '';
   @Local busy: boolean = false;
   @Local tab: number = 0;
+  @Local viewportWidth: number = 0;
+  @Local viewportHeight: number = 0;
+  @Local windowState: AdaptiveWindowState = adaptiveWindowState();
   @Local titleCollapsed: boolean[] = [false, false, false, false];
   @Local welcomeStep: number = 0;
   @Local selectedBook: string = 'cet4';
@@ -939,9 +943,9 @@ struct Index {
           } else {
             Text('先想一想，它的意思是什么？').fontSize(16).fontColor($r('app.color.text_secondary')).margin({ top: 36 })
           }
-        }.width('100%').padding({ left: 26, right: 26, top: 46, bottom: 24 })
+        }.width('100%').padding({ left: 26, right: 26, top: this.viewportHeight < 480 ? 12 : 46, bottom: 24 })
           .constraintSize({ maxWidth: 640 })
-      }.width('100%').layoutWeight(1).scrollBar(BarState.Off)
+      }.width('100%').layoutWeight(1).scrollBar(BarState.Auto)
       Column({ space: 14 }) {
         if (this.answerVisible) {
           Row({ space: 9 }) {
@@ -950,8 +954,10 @@ struct Index {
             this.Judgment('认识', '能回忆核心意思', ReviewResult.KNOW)
           }.width('100%')
         } else { this.Action({ label: '显示释义', action: () => { this.showAnswer(); }, primary: true }); }
-        Text('忘记也没关系，我们会安排下次见面。').fontSize(12).fontColor($r('app.color.text_secondary'))
-      }.padding({ left: 24, right: 24, bottom: 22, top: 12 }).width('100%').constraintSize({ maxWidth: 640 })
+        if (this.viewportHeight >= 480) {
+          Text('忘记也没关系，我们会安排下次见面。').fontSize(12).fontColor($r('app.color.text_secondary'))
+        }
+      }.padding({ left: 24, right: 24, bottom: Math.max(16, this.windowState.bottomInset), top: this.viewportHeight < 480 ? 6 : 12 }).width('100%').constraintSize({ maxWidth: 640 })
     }.width('100%').height('100%').backgroundColor($r('app.color.background'))
   }
 
@@ -995,6 +1001,7 @@ struct Index {
 
   @Builder
   WordListPage() {
+    Row() {
     List({ space: 10 }) {
       ListItem() {
         Column({ space: 10 }) {
@@ -1031,6 +1038,14 @@ struct Index {
             }.layoutWeight(1).alignItems(HorizontalAlign.Start)
             Text('›').fontSize(26).fontColor($r('app.color.text_secondary'))
           }.padding(21).width('100%').backgroundColor($r('app.color.surface')).borderRadius(21)
+            .focusable(true).hoverEffect(HoverEffect.Highlight)
+            .onKeyEvent((event: KeyEvent): boolean => {
+              if (event.type === KeyType.Down && (event.keyCode === KeyCode.KEYCODE_ENTER ||
+                event.keyCode === KeyCode.KEYCODE_SPACE)) {
+                this.openWord(word.id, this.listBookId); return true;
+              }
+              return false;
+            })
             .onClick(() => { this.openWord(word.id, this.listBookId); })
         }
       }, (word: Word) => JSON.stringify(word))
@@ -1047,10 +1062,11 @@ struct Index {
       if (this.words.length >= 80) {
         ListItem() { Text('显示前 80 个结果，输入更多字符缩小范围。').fontSize(12).fontColor($r('app.color.text_secondary')).padding(12) }
       }
-    }.padding({ left: 24, right: 24 }).width('100%').height('100%').scrollBar(BarState.Off)
+    }.padding({ left: 24, right: 24 }).width('100%').constraintSize({ maxWidth: 1040 }).height('100%').scrollBar(BarState.Auto)
       .contentStartOffset(66).contentEndOffset(bottomContentOffset(this.getUIContext()))
       .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
       .backgroundColor($r('app.color.background'))
+    }.width('100%').height('100%').justifyContent(FlexAlign.Center)
   }
 
   @Builder
@@ -1183,7 +1199,7 @@ struct Index {
       }.layoutWeight(1).width('100%').padding({ left: 24, right: 24 }).scrollBar(BarState.Off)
       Column() { this.Action({ label: `导入 ${this.pendingWords.length} 个词`, action: () => { this.confirmImport(); }, primary: true }); }
         .width('100%').padding({ left: 24, right: 24, top: 8, bottom: 20 })
-    }.padding({ top: 56 }).height('100%').width('100%').backgroundColor($r('app.color.background'))
+    }.padding({ top: 56 }).height('100%').width('100%').constraintSize({ maxWidth: 760 }).backgroundColor($r('app.color.background'))
   }
 
   @Builder
@@ -1352,8 +1368,9 @@ struct Index {
     Navigation() {
       Scroll(this.tabScrollers[0]) {
         Column() { this.Home(); }
-          .padding({ left: 24, right: 24, top: 24, bottom: 116 }).width('100%')
-          .constraintSize({ maxWidth: 760 })
+          .padding({ left: this.viewportWidth < 600 ? 24 : 32, right: this.viewportWidth < 600 ? 24 : 32,
+            top: 24, bottom: this.viewportWidth >= 840 ? 32 : 116 }).width('100%')
+          .constraintSize({ maxWidth: 1120 })
       }.width('100%').height('100%').contentStartOffset(56)
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
         .scrollBar(BarState.Off)
@@ -1372,8 +1389,9 @@ struct Index {
     Navigation() {
       Scroll(this.tabScrollers[1]) {
         Column() { this.Books(); }
-          .padding({ left: 24, right: 24, top: 24, bottom: 116 }).width('100%')
-          .constraintSize({ maxWidth: 760 })
+          .padding({ left: this.viewportWidth < 600 ? 24 : 32, right: this.viewportWidth < 600 ? 24 : 32,
+            top: 24, bottom: this.viewportWidth >= 840 ? 32 : 116 }).width('100%')
+          .constraintSize({ maxWidth: 1120 })
       }.width('100%').height('100%').contentStartOffset(56)
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
         .scrollBar(BarState.Off)
@@ -1392,8 +1410,9 @@ struct Index {
     Navigation() {
       Scroll(this.tabScrollers[2]) {
         Column() { this.StatisticsPage(); }
-          .padding({ left: 24, right: 24, top: 24, bottom: 116 }).width('100%')
-          .constraintSize({ maxWidth: 760 })
+          .padding({ left: this.viewportWidth < 600 ? 24 : 32, right: this.viewportWidth < 600 ? 24 : 32,
+            top: 24, bottom: this.viewportWidth >= 840 ? 32 : 116 }).width('100%')
+          .constraintSize({ maxWidth: 1120 })
       }.width('100%').height('100%').contentStartOffset(56)
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
         .scrollBar(BarState.Off)
@@ -1412,8 +1431,9 @@ struct Index {
     Navigation() {
       Scroll(this.tabScrollers[3]) {
         Column() { this.Profile(); }
-          .padding({ left: 24, right: 24, top: 24, bottom: 116 }).width('100%')
-          .constraintSize({ maxWidth: 760 })
+          .padding({ left: this.viewportWidth < 600 ? 24 : 32, right: this.viewportWidth < 600 ? 24 : 32,
+            top: 24, bottom: this.viewportWidth >= 840 ? 32 : 116 }).width('100%')
+          .constraintSize({ maxWidth: 1120 })
       }.width('100%').height('100%').contentStartOffset(56)
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
         .scrollBar(BarState.Off)
@@ -1448,6 +1468,7 @@ struct Index {
           else {
             ImmersiveDock({
               selectedIndex: this.tab,
+              availableWidth: this.viewportWidth,
               onSelect: (index: number) => { this.tab = index; this.refresh().catch(() => {}); },
               homeContent: () => { this.HomeTabContent(); },
               booksContent: () => { this.BooksTabContent(); },
@@ -1460,5 +1481,9 @@ struct Index {
           .onAppear(() => { this.dispatchInitialRoute(); })
       }
     }.width('100%').height('100%').backgroundColor($r('app.color.background'))
+      .onAreaChange((_old: Area, area: Area) => {
+        this.viewportWidth = Number(area.width);
+        this.viewportHeight = Number(area.height);
+      })
   }
 }

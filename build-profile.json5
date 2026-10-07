@@ -5,19 +5,20 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "/Users/thousandmiles/.ohos/config/default_LexiGlow_ibt-zkkGH5Ngzy9OUWWgcdgVibpG3YXo4GPu5K6NX4A=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B536889F1D011BB5F45B5E04A703CDBBF46A3181DA65F4B78F706C0BED714D3003D26E2558AC317",
-          "profile": "/Users/thousandmiles/.ohos/config/default_LexiGlow_ibt-zkkGH5Ngzy9OUWWgcdgVibpG3YXo4GPu5K6NX4A=.p7b",
+          "certpath": "/Users/thousandmiles/Downloads/LexiGlow.cer",
+          "keyAlias": "LexiGlow",
+          "keyPassword": "0000001D5AC7A6133EC4BC3FD936A6F3CC3DCCEC89BDDF624F18EF93B54CBADDC881E94CDE52E460B918F5BFEC",
+          "profile": "/Users/thousandmiles/Downloads/LexiGlowRelease.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "/Users/thousandmiles/.ohos/config/default_LexiGlow_ibt-zkkGH5Ngzy9OUWWgcdgVibpG3YXo4GPu5K6NX4A=.p12",
-          "storePassword": "0000001BFE2259CE1EB0D9F54D9A50497B55188CE1A6C2FEEA0BE636057D6319DF151BF18601375A9F1F8F"
+          "storeFile": "/Users/thousandmiles/Desktop/密钥/LexiGlow.p12",
+          "storePassword": "0000001DF799CD9A680270D244457908DA8186F8C68D816AC90A302B968F7108AF78CBB8FDAF968833E9181A40"
         }
       }
     ],
     "products": [
       {
         "name": "default",
+        "signingConfig": "default",
         "targetSdkVersion": "26.0.0",
         "compatibleSdkVersion": "26.0.0",
         "runtimeOS": "HarmonyOS",

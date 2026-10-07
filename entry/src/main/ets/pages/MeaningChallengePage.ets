@@ -3,11 +3,15 @@ import { LearningService } from '../service/LearningService';
 import { ChallengeService } from '../service/ChallengeService';
 import { AudioService } from '../service/AudioService';
 import { meaningAnswers } from '../utils/MeaningMatcher';
+import { bottomContentOffset } from '../utils/SafeAreaUtils';
 
 @ComponentV2
 export struct MeaningChallengePage {
   @Event onLearn: () => void = () => {};
   @Event onLearnedWords: () => void = () => {};
+  @Param topInset: number = 0;
+  @Local pageWidth: number = 0;
+  @Local pageHeight: number = 0;
   @Local loading: boolean = false;
   @Local error: string = '';
   @Local word: Word = new Word();
@@ -91,17 +95,67 @@ export struct MeaningChallengePage {
     }
   }
 
+  private isWide(): boolean { return this.pageWidth >= 840; }
+
+  private isShort(): boolean { return this.pageHeight > 0 && this.pageHeight < 560; }
+
+  private contentSpacing(): number { return this.isShort() ? 14 : 22; }
+
   @Builder
   private action(label: string, primary: boolean, callback: () => void) {
     Button(label, { type: ButtonType.Normal }).width('100%').height(52).fontSize(16)
       .borderRadius(18).backgroundColor(primary ? $r('app.color.brand_ink') : $r('app.color.soft_surface'))
       .fontColor(primary ? $r('app.color.inverse_text') : $r('app.color.text_primary'))
-      .enabled(!this.loading).onClick(callback)
+      .enabled(!this.loading).hoverEffect(HoverEffect.Auto).onClick(callback)
+  }
+
+  @Builder
+  private questionContent() {
+    Column({ space: 16 }) {
+      Text(this.word.word).fontSize(38).fontWeight(FontWeight.Medium).fontFamily('serif')
+        .fontColor($r('app.color.text_primary')).width('100%').textAlign(TextAlign.Center)
+      Row({ space: 12 }) {
+        Text(this.word.phonetic).fontSize(16).fontColor($r('app.color.text_secondary')).layoutWeight(1)
+          .textAlign(TextAlign.End)
+        Button('♪').width(44).height(44).fontSize(23).backgroundColor($r('app.color.soft_surface'))
+          .fontColor($r('app.color.text_primary')).accessibilityText('播放英文发音')
+          .hoverEffect(HoverEffect.Auto).onClick(() => { this.pronounce(); })
+        Blank().layoutWeight(1)
+      }.width('100%')
+    }.padding({ top: this.isShort() ? 12 : 30, bottom: this.isShort() ? 12 : 22 }).width('100%')
+  }
+
+  @Builder
+  private answerContent() {
+    Column({ space: this.contentSpacing() }) {
+      Text('写出它的任意一个中文意思').fontSize(17).fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.text_primary')).width('100%')
+      TextInput({ text: this.answer, placeholder: '例如：放弃', controller: this.inputController })
+        .fontSize(18).height(58).maxLength(120).borderRadius(18).width('100%')
+        .backgroundColor($r('app.color.surface')).fontColor($r('app.color.text_primary'))
+        .accessibilityText('中文释义答案').enabled(!this.answered).enterKeyType(EnterKeyType.Done)
+        .onChange((value: string) => { this.answer = value; this.error = ''; })
+        .onSubmit(() => { this.submit(); })
+      if (this.answered) {
+        Column({ space: 12 }) {
+          Text(this.correct ? '答对了。' : '这次没答对，再看一眼释义。')
+            .fontSize(18).fontWeight(FontWeight.Medium)
+            .fontColor(this.correct ? $r('app.color.success') : $r('app.color.text_primary')).width('100%')
+          Text('词典释义').fontSize(13).fontColor($r('app.color.text_secondary')).width('100%')
+          Text(this.word.meaning).fontSize(18).lineHeight(28).fontColor($r('app.color.text_primary')).width('100%')
+        }.padding(22).width('100%').backgroundColor($r('app.color.surface')).borderRadius(24)
+        this.action(this.index + 1 >= this.total ? '查看本轮结果' : '下一词 →', true, () => { this.next(); })
+      } else {
+        if (this.error) { Text(this.error).fontSize(14).fontColor($r('app.color.text_secondary')).width('100%'); }
+        this.action('检查答案', true, () => { this.submit(); })
+      }
+    }.width('100%')
   }
 
   build() {
-    Scroll() {
-      Column({ space: 22 }) {
+    Column() {
+      Scroll() {
+        Column({ space: this.contentSpacing() }) {
         if (this.loading) {
           LoadingProgress().width(32).height(32).color($r('app.color.success'))
           Text('正在从已学单词中出题…').fontSize(15).fontColor($r('app.color.text_secondary'))
@@ -133,42 +187,28 @@ export struct MeaningChallengePage {
           }.width('100%')
           Progress({ value: this.index, total: this.total, type: ProgressType.Linear })
             .color($r('app.color.success')).backgroundColor($r('app.color.soft_surface')).style({ strokeWidth: 4 })
-          Column({ space: 16 }) {
-            Text(this.word.word).fontSize(38).fontWeight(FontWeight.Medium).fontFamily('serif')
-              .fontColor($r('app.color.text_primary')).width('100%').textAlign(TextAlign.Center)
-            Row({ space: 12 }) {
-              Text(this.word.phonetic).fontSize(16).fontColor($r('app.color.text_secondary'))
-              Button('♪').width(44).height(44).fontSize(23).backgroundColor($r('app.color.soft_surface'))
-                .fontColor($r('app.color.text_primary')).accessibilityText('播放英文发音')
-                .onClick(() => { this.pronounce(); })
-            }
-          }.padding({ top: 30, bottom: 22 }).width('100%')
-          Text('写出它的任意一个中文意思').fontSize(17).fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_primary')).width('100%')
-          TextInput({ text: this.answer, placeholder: '例如：放弃', controller: this.inputController })
-            .fontSize(18).height(58).maxLength(120).borderRadius(18)
-            .backgroundColor($r('app.color.surface')).fontColor($r('app.color.text_primary'))
-            .enabled(!this.answered).enterKeyType(EnterKeyType.Done)
-            .onChange((value: string) => { this.answer = value; this.error = ''; })
-            .onSubmit(() => { this.submit(); })
-          if (this.answered) {
-            Column({ space: 12 }) {
-              Text(this.correct ? '答对了。' : '这次没答对，再看一眼释义。')
-                .fontSize(18).fontWeight(FontWeight.Medium)
-                .fontColor(this.correct ? $r('app.color.success') : $r('app.color.text_primary')).width('100%')
-              Text('词典释义').fontSize(13).fontColor($r('app.color.text_secondary')).width('100%')
-              Text(this.word.meaning).fontSize(18).lineHeight(28).fontColor($r('app.color.text_primary')).width('100%')
-            }.padding(22).width('100%').backgroundColor($r('app.color.surface')).borderRadius(24)
-            this.action(this.index + 1 >= this.total ? '查看本轮结果' : '下一词 →', true, () => { this.next(); })
+          if (this.isWide()) {
+            Row({ space: 28 }) {
+              Column() { this.questionContent(); }.layoutWeight(1)
+              Column() { this.answerContent(); }.layoutWeight(1)
+            }.width('100%').alignItems(VerticalAlign.Top)
           } else {
-            if (this.error) { Text(this.error).fontSize(14).fontColor($r('app.color.text_secondary')).width('100%'); }
-            this.action('检查答案', true, () => { this.submit(); })
+            this.questionContent()
+            this.answerContent()
           }
           Text('题目来自你的已学单词 · 独立练习计分').fontSize(12)
             .fontColor($r('app.color.text_secondary')).width('100%')
         }
-      }.padding(24).width('100%').constraintSize({ maxWidth: 680 })
-    }.width('100%').height('100%').contentStartOffset(56).scrollBar(BarState.Off)
+        }.padding(this.pageWidth > 0 && this.pageWidth < 360 ? 16 : 24).width('100%')
+          .constraintSize({ maxWidth: this.isWide() ? 1040 : 680 })
+      }.width('100%').height('100%').contentStartOffset(56 + this.topInset)
+        .contentEndOffset(bottomContentOffset(this.getUIContext()))
+        .scrollBar(this.pageWidth >= 600 ? BarState.Auto : BarState.Off)
+    }.width('100%').height('100%')
       .backgroundColor($r('app.color.background'))
+      .onAreaChange((_oldArea: Area, area: Area) => {
+        this.pageWidth = Number(area.width);
+        this.pageHeight = Number(area.height);
+      })
   }
 }

@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "词萤智能手表离线学习" },
+    { "name": "WatchAbility_desc", "value": "手腕上的单词学习与间隔复习" },
+    { "name": "WatchAbility_label", "value": "词萤" }
+  ]
+}

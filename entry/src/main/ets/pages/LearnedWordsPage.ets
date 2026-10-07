@@ -8,6 +8,8 @@ import { bottomContentOffset } from '../utils/SafeAreaUtils';
 export struct LearnedWordsPage {
   @Event onOpenWord: (id: number, bookId: string) => void = () => {};
   @Event onChallenge: () => void = () => {};
+  @Param topInset: number = 0;
+  @Local pageWidth: number = 0;
   @Local dates: LearnedDate[] = [];
   @Local selectedDate: string = '';
   @Local query: string = '';
@@ -109,109 +111,126 @@ export struct LearnedWordsPage {
     return day ? day.count : 0;
   }
 
+  private isWide(): boolean { return this.pageWidth >= 840; }
+
+  private pagePadding(): number { return this.pageWidth > 0 && this.pageWidth < 360 ? 16 : 24; }
+
   @Builder
   private dateChip(day: LearnedDate) {
     Button(`${day.date || '日期未记录'} · ${day.count}`, { type: ButtonType.Normal })
       .fontSize(12).height(42).padding({ left: 14, right: 14 }).borderRadius(14)
       .backgroundColor(day.date === this.selectedDate ? $r('app.color.glow') : $r('app.color.surface'))
-      .fontColor($r('app.color.text_primary')).onClick(() => { this.selectDate(day.date); })
+      .fontColor($r('app.color.text_primary')).hoverEffect(HoverEffect.Auto)
+      .onClick(() => { this.selectDate(day.date); })
   }
 
   @Builder
   private wordRow(item: LearnedWord) {
-    Row({ space: 12 }) {
-      Column({ space: 7 }) {
-        Text(item.word.word).fontSize(21).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
-        Text(item.word.meaning).fontSize(14).lineHeight(22).fontColor($r('app.color.text_secondary')).maxLines(2)
-      }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-      Column({ space: 6 }) {
-        Text(strengthName(item.strength)).fontSize(12).fontColor($r('app.color.success'))
-        Text('›').fontSize(26).fontColor($r('app.color.text_secondary'))
+    Button({ type: ButtonType.Normal }) {
+      Row({ space: 12 }) {
+        Column({ space: 7 }) {
+          Text(item.word.word).fontSize(21).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
+          Text(item.word.meaning).fontSize(14).lineHeight(22).fontColor($r('app.color.text_secondary')).maxLines(2)
+        }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+        Column({ space: 6 }) {
+          Text(strengthName(item.strength)).fontSize(12).fontColor($r('app.color.success'))
+          Text('›').fontSize(26).fontColor($r('app.color.text_secondary'))
+        }
       }
-    }.padding(20).width('100%').backgroundColor($r('app.color.surface')).borderRadius(20)
+    }.padding(20).width('100%').backgroundColor($r('app.color.surface')).borderRadius(20).focusable(true)
+      .hoverEffect(HoverEffect.Auto).accessibilityText(`${item.word.word}，${item.word.meaning}，查看单词详情`)
       .onClick(() => { this.onOpenWord(item.word.id, item.word.sourceBookId); })
   }
 
-  build() {
-    List({ space: 10, scroller: this.listScroller }) {
+  @Builder
+  private listHeader() {
+    Column({ space: 14 }) {
       if (!this.ready) {
-        ListItem() {
-          LoadingProgress().width(32).height(32).color($r('app.color.success'))
-        }
+        LoadingProgress().width(32).height(32).color($r('app.color.success'))
       } else if (this.dates.length === 0) {
-        ListItem() {
-          Column({ space: 18 }) {
-            Text(this.error || '还没有已学单词。').fontSize(24).fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.text_primary'))
-            Text('完成第一次学习后，单词会按首次学习日期留在这里。').fontSize(15).lineHeight(25)
-              .fontColor($r('app.color.text_secondary'))
-            if (this.error) {
-              Button('重试').height(48).backgroundColor($r('app.color.brand_ink'))
-                .fontColor($r('app.color.inverse_text')).onClick(() => { this.initialize(); })
-            }
-          }.padding({ top: 26, bottom: 26 }).width('100%')
-        }
+        Column({ space: 18 }) {
+          Text(this.error || '还没有已学单词。').fontSize(24).fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+          Text('完成第一次学习后，单词会按首次学习日期留在这里。').fontSize(15).lineHeight(25)
+            .fontColor($r('app.color.text_secondary'))
+          if (this.error) {
+            Button('重试').height(48).backgroundColor($r('app.color.brand_ink'))
+              .fontColor($r('app.color.inverse_text')).onClick(() => { this.initialize(); })
+          }
+        }.padding({ top: 26, bottom: 26 }).width('100%')
       } else {
-        ListItem() {
-          Column({ space: 14 }) {
-            Row() {
-              Text(`已学 ${this.totalLearned} 词`).fontSize(18).fontWeight(FontWeight.Medium)
-                .fontColor($r('app.color.text_primary')).layoutWeight(1)
-              Button('释义挑战 →').height(42).fontSize(13).backgroundColor($r('app.color.glow'))
-                .fontColor($r('app.color.text_primary')).onClick(this.onChallenge)
-            }.width('100%')
-            Row({ space: 10 }) {
-              Button(`${this.dateLabel()}  ▾`, { type: ButtonType.Normal }).height(46).fontSize(15)
-                .backgroundColor($r('app.color.surface')).fontColor($r('app.color.text_primary'))
-                .borderRadius(14).onClick(() => { this.pickDate(); })
-              Text(`首次学习 ${this.selectedCount()} 词`).fontSize(13).fontColor($r('app.color.text_secondary'))
-            }.width('100%')
-            Scroll() {
-              Row({ space: 8 }) {
-                ForEach(this.dates.filter((day: LearnedDate) => day.date.length > 0).slice(0, 7), (day: LearnedDate) => {
-                  this.dateChip(day)
-                }, (day: LearnedDate) => day.date)
-                ForEach(this.dates.filter((day: LearnedDate) => day.date.length === 0), (day: LearnedDate) => {
-                  this.dateChip(day)
-                }, (day: LearnedDate) => 'unknown')
-              }
-            }.scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off).width('100%').height(44)
-            TextInput({ text: this.query, placeholder: '搜索这一天的单词或中文释义' }).height(50).fontSize(15)
-              .backgroundColor($r('app.color.surface')).fontColor($r('app.color.text_primary')).borderRadius(16)
-              .onChange((value: string) => { this.search(value); })
-          }.width('100%')
-        }
-        ForEach(this.words, (item: LearnedWord) => {
-          ListItem() { this.wordRow(item); }
-        }, (item: LearnedWord) => `${item.word.id}`)
+        Row() {
+          Text(`已学 ${this.totalLearned} 词`).fontSize(18).fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary')).layoutWeight(1)
+          Button('释义挑战 →').height(42).fontSize(13).backgroundColor($r('app.color.glow'))
+            .fontColor($r('app.color.text_primary')).hoverEffect(HoverEffect.Auto).onClick(this.onChallenge)
+        }.width('100%')
+        Flex({ wrap: FlexWrap.Wrap, alignItems: ItemAlign.Center }) {
+          Button(`${this.dateLabel()}  ▾`, { type: ButtonType.Normal }).height(46).fontSize(15)
+            .backgroundColor($r('app.color.surface')).fontColor($r('app.color.text_primary'))
+            .borderRadius(14).margin({ right: 10 }).hoverEffect(HoverEffect.Auto).onClick(() => { this.pickDate(); })
+          Text(`首次学习 ${this.selectedCount()} 词`).fontSize(13).fontColor($r('app.color.text_secondary'))
+            .padding({ top: 8, bottom: 8 })
+        }.width('100%')
+        Scroll() {
+          Row({ space: 8 }) {
+            ForEach(this.dates.filter((day: LearnedDate) => day.date.length > 0).slice(0, 7), (day: LearnedDate) => {
+              this.dateChip(day)
+            }, (day: LearnedDate) => day.date)
+            ForEach(this.dates.filter((day: LearnedDate) => day.date.length === 0), (day: LearnedDate) => {
+              this.dateChip(day)
+            }, (day: LearnedDate) => 'unknown')
+          }
+        }.scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off).width('100%').height(44)
+        TextInput({ text: this.query, placeholder: '搜索这一天的单词或中文释义' }).height(50).fontSize(15)
+          .backgroundColor($r('app.color.surface')).fontColor($r('app.color.text_primary')).borderRadius(16)
+          .accessibilityText('搜索已学单词').onChange((value: string) => { this.search(value); })
+      }
+    }.width('100%').padding({ bottom: 10 })
+  }
+
+  @Builder
+  private listFooter() {
+    Column() {
+      if (this.ready && this.dates.length > 0) {
         if (this.error) {
-          ListItem() {
-            Button(`${this.error} 点此重试`).fontSize(14).height(48)
-              .backgroundColor($r('app.color.soft_surface')).fontColor($r('app.color.text_primary'))
-              .onClick(() => { this.loadWords(this.words.length === 0); })
-          }
+          Button(`${this.error} 点此重试`).fontSize(14).constraintSize({ minHeight: 48 })
+            .backgroundColor($r('app.color.soft_surface')).fontColor($r('app.color.text_primary'))
+            .onClick(() => { this.loadWords(this.words.length === 0); })
         } else if (this.loading) {
-          ListItem() {
-            Text('正在查找…').fontSize(14).padding(20).fontColor($r('app.color.text_secondary'))
-          }
+          Text('正在查找…').fontSize(14).padding(20).fontColor($r('app.color.text_secondary'))
         } else if (this.words.length === 0) {
-          ListItem() {
-            Text(this.query ? '这一天没有匹配的单词，试试其他关键词。' : '这一天没有首次学习的单词，可以选择其他日期。')
-              .fontSize(15).lineHeight(25).padding(22).fontColor($r('app.color.text_secondary'))
-          }
+          Text(this.query ? '这一天没有匹配的单词，试试其他关键词。' : '这一天没有首次学习的单词，可以选择其他日期。')
+            .fontSize(15).lineHeight(25).padding(22).fontColor($r('app.color.text_secondary'))
         } else if (this.hasMore) {
-          ListItem() {
-            Button('加载更多单词').fontSize(14).height(46).backgroundColor($r('app.color.soft_surface'))
-              .fontColor($r('app.color.text_primary')).onClick(() => { this.loadWords(false); })
-          }
+          Button('加载更多单词').fontSize(14).height(46).backgroundColor($r('app.color.soft_surface'))
+            .fontColor($r('app.color.text_primary')).hoverEffect(HoverEffect.Auto)
+            .onClick(() => { this.loadWords(false); })
         }
       }
-    }.padding({ left: 24, right: 24 }).width('100%').height('100%').scrollBar(BarState.Off)
-      .contentStartOffset(66).contentEndOffset(bottomContentOffset(this.getUIContext()))
+    }.width('100%').padding({ top: 10 })
+  }
+
+  build() {
+    Column() {
+      List({ space: 10, scroller: this.listScroller }) {
+        ListItemGroup({ header: this.listHeader(), footer: this.listFooter(), space: 10 }) {
+          ForEach(this.words, (item: LearnedWord) => {
+            ListItem() { this.wordRow(item); }
+          }, (item: LearnedWord) => `${item.word.id}`)
+        }
+      }.lanes(this.isWide() ? 2 : 1, 14)
+        .padding({ left: this.pagePadding(), right: this.pagePadding() }).width('100%').height('100%')
+        .constraintSize({ maxWidth: 1040 }).scrollBar(this.pageWidth >= 600 ? BarState.Auto : BarState.Off)
+        .contentStartOffset(66 + this.topInset).contentEndOffset(bottomContentOffset(this.getUIContext()))
+        .onReachEnd(() => {
+          if (this.ready && this.dates.length > 0) { this.loadWords(false); }
+        })
+    }.width('100%').height('100%').alignItems(HorizontalAlign.Center)
       .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
       .backgroundColor($r('app.color.background'))
-      .onReachEnd(() => {
-        if (this.ready && this.dates.length > 0) { this.loadWords(false); }
+      .onAreaChange((_oldArea: Area, area: Area) => {
+        this.pageWidth = Number(area.width);
       })
   }
 }
