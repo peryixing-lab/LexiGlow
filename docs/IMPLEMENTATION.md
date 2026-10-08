@@ -6,7 +6,7 @@
 
 | 方案部分 | 实现 |
 | --- | --- |
-| 品牌与视觉 | 词萤名称、原创 SVG 卡片/萤光点图标、暖象牙白、萤光黄、资源化深浅色 |
+| 品牌与视觉 | 词萤名称、原创 SVG 卡片/萤光点图标、暖象牙白页面背景、萤光黄、资源化深浅色 |
 | 首次使用 | 4 步引导，目标词书、基础、每日量、默认关闭提醒，首次 3 词体验 |
 | 首页 | 今日完成量/预计时长、到期词优先入口、速学、每日词、忙碌预算、考试倒计时 |
 | 学习和复习 | 揭晓答案前回忆、三档判断、统一进度、按时间调度、每词原子保存、重启续学 |
@@ -36,7 +36,11 @@
 
 视觉实现采用用户最新指定的 API 26 官方教程：标准 Tabs 配合 BottomTabBarStyle 与 `barFloatingStyle`，通过 `@kit.ArkUI` 的 `new uiMaterial.ImmersiveMaterial({})` 配置原生悬浮栏材质。底栏 `barBottomMargin` 为 8vp，`maskColor` 为透明、`maskHeight` 为 0。Tabs 使用底部限定的 `ignoreLayoutSafeArea` 与 `LayoutPolicy.matchParent`，TabContent、各页 Navigation 和 Scroll 延伸底部安全区，使背景与滚动内容铺到手势区，同时保留顶部状态栏和挖孔避让。
 
-四个主页标题与子页标题分别由原生 Navigation/NavDestination 管理，采用 `BarStyle.STACK` 和 `ScrollEffectType.GRADUAL_BLUR`；滚动内容用 `contentStartOffset(56)` 避让初始标题，正文大标题滚出后显示紧凑标题。标题栏按钮使用同一套系统材质；`module.metadata` 配置 `ohos.arkui.UIMaterial.state: enable`。设备材质能力通过 `uiMaterial.isImmersiveMaterialSupported()` 检查，材质效果由系统根据设备能力呈现。
+窄窗口四个主页标题与子页标题分别由原生 Navigation/NavDestination 管理，采用 `BarStyle.STACK` 和 `ScrollEffectType.GRADUAL_BLUR`；滚动内容用 `contentStartOffset(56)` 避让初始标题，正文大标题滚出后显示紧凑标题。平板与 2in1 宽窗口将顶部一级导航放在 Tabs 外层共享的原生 Navigation 标题栏中，高度 56vp，保留相同的原生渐进模糊及安全区延伸。宽模式各 Tab 直接使用 Scroll，起始偏移仍为 56vp；正文滚动和切页时顶部栏保持原位。标题栏按钮使用同一套系统材质；`module.metadata` 配置 `ohos.arkui.UIMaterial.state: enable`。设备材质能力通过 `uiMaterial.isImmersiveMaterialSupported()` 检查，材质效果由系统根据设备能力呈现。
+
+平板与 2in1 在窗口宽度达到 840vp 时，将 Logo、LexiGlow 与首页/词库/统计/我的放在同一顶部标题行；当前页使用无边框高亮，切换沿用标准 TabsController 的动画。窄窗口恢复现有悬浮底部 Dock。主页面使用整个窗口宽度计算卡片布局，不再预留侧栏，标题与正文共同居中；600vp 以上顶部对齐，正文上限为 1600vp。词库按最小 320vp 卡宽显示一至三列，统计与设置按最小 300vp 卡宽显示一至两列，列宽显式扣除固定间距，避免原来的 `49% + 16vp` 在小窗中意外换行。短窗口收紧标题、计划卡片和页边距。大屏首页增加现有学习累计概览及每日一词释义，手机保持原来的首页内容。已学列表支持一至三列；挑战页用同一 Flex 输入结构响应宽度变化。浅色背景统一恢复为 `#F6F2E4`，包含启动窗口与 2in1。
+
+本次响应式调整通过 HAP/APP 构建与 `tools/test-layout.cjs` 的 7 组几何检查，覆盖侧栏断点、最小卡宽、固定间距、等比例缩窗和反复缩放。模拟器验证平板全屏首页、词库、统计、已学列表、挑战页，2in1 最大化与等比例缩小窗口，以及手机首页。截图见 [平板首页](screenshots/tablet-responsive-home.png)、[平板词库](screenshots/tablet-responsive-books.png)、[2in1 全屏](screenshots/desktop-responsive-full.png)、[2in1 小窗](screenshots/desktop-responsive-small.png)。
 
 ## 华为官方依据
 
@@ -49,6 +53,8 @@
 - [沉浸光感典型场景](https://developer.huawei.com/consumer/cn/doc/doccenter-capabilities/arkts-immersive-light-sample)：标准 Tabs 悬浮栏，以及内容区标题切换至 Navigation/NavDestination 标题栏的原生渐进模糊效果。
 - [开启沉浸光感](https://developer.huawei.com/consumer/cn/doc/doccenter-capabilities/arkts-immersive-light-sense-enable)、[组件适配沉浸光感](https://developer.huawei.com/consumer/cn/doc/doccenter-capabilities/arkts-immersive-light-sense-component-adaptation)：module 开关、系统材质接口与生效区域。
 - [Tabs 沉浸式布局](https://developer.huawei.com/consumer/cn/doc/doccenter-dev-faq/faqs-arkui-1584)：背景、布局和滚动内容的安全区延伸。
+- [组件位置设置](https://developer.huawei.com/consumer/cn/doc/doccenter-references/api/ts-universal-attributes-location)：Scroll 默认居中，`align(Alignment.Top)` 改为顶部对齐。
+- [多设备窗口模式](https://developer.huawei.com/consumer/cn/doc/doccenter-multi-device/bpta-multi-device-window-mode)：根据实际窗口、容器尺寸响应全屏与自由窗口。
 - 发音、文件选择、提醒的官方依据及设备条件见 [PLATFORM.md](PLATFORM.md)。
 
 本机 SDK 元数据：`/Applications/DevEco-Studio.app/Contents/sdk/default/sdk-pkg.json`，`platformVersion:26.0.0`、`releaseType:Release`、`version:26.0.0.105`。工程没有降级到旧 SDK 或为了绕过编译禁用 ArkTS 检查。

@@ -18,6 +18,8 @@
 
 `ImmersiveDock.ets` 作为完整页面承载四个 `TabContent`，使用 `TabsController` 和标准 `BottomTabBarStyle`。`selectedIndex`、`onSelect` 与四个 `@BuilderParam` 保持接入契约；SVG 图标和选中/未选中文字颜色引用应用主题资源。
 
+平板与 2in1 窗口宽度达到 840vp 时隐藏底栏及侧栏，改用 `PrimaryTitleBar` 中的 `PrimaryNavigation`：Logo、LexiGlow 和四个无边框一级导航按钮排列在顶部，当前页使用主题高亮。顶部栏由 Tabs 外层共享的原生 Navigation 管理，高度 56vp，沿用 `BarStyle.STACK` 与 `ScrollEffectType.GRADUAL_BLUR`。宽模式各 Tab 直接提供 Scroll，让滚动驱动共享标题栏的原生沉浸光感；`contentStartOffset(56)` 与安全区延伸链保持，切页动画只作用于正文。顶部按钮与底部 Dock 共用同一个 `TabsController`，选中状态由原生 `onChange` 更新，右侧操作动态读取当前页。正文和标题按整个窗口宽度居中；窄窗口恢复各页原 Navigation 标题及底栏材质、间距和手机/平板小窗的既有偏移。
+
 核心配置：
 
 ```ts
@@ -41,6 +43,12 @@ Tabs({ barPosition: BarPosition.End, index: this.boundedIndex(), controller: thi
 四个主页面切换使用原生 `Tabs.animationCurve(curves.springMotion(0.30, 0.82))`，产生轻微落位回弹；`CONTENT_FIRST_WITH_JUMP` 让跨页点击直接切向目标，避免经过中间页面。`animationDuration(260)` 开启切换动效，弹簧实际时长由物理参数决定。只保留 `index` 状态绑定，移除重复的 `TabsController.changeIndex` 路径。同步读取系统减弱动画设置，并使用同一具名监听注册、注销；减弱动画开启时采用 `NO_ANIMATION`、零时长。子页面继续使用系统 `Navigation` 入栈、返回过渡。
 
 SDK 参数为 `TabsOptions` 的 `barPosition/index/controller`，以及 `TabsAttribute.barFloatingStyle(style: Optional<FloatingTabBarStyle>)`。`FloatingTabBarStyle.systemMaterial` 类型是 `uiMaterial.ImmersiveMaterial`，`maskColor` 和 `maskHeight` 是同一配置对象的直接字段。
+
+### 多设备适配后的手机回归修复（2026-10-08）
+
+手机分支使用 `LayoutPolicy.matchParent` 与 `ignoreLayoutSafeArea` 配对；百分比高度只移动布局位置，无法按安全区扩展尺寸，会让顶部模糊和浮栏锚点偏移。平板、2in1 保留已有 `Row` 高度计算，宽窗口导航改为顶部排列。不要为底部浮栏设置普通 `.barWidth('100%')`：它优先于 `barFloatingStyle` 的宽度规则，会把原生胶囊拉到屏幕两边。底栏继续使用系统默认宽度、56vp 高度和既有 `ImmersiveMaterial`；普通窗口底部间距为 8vp，手机与平板小窗保留已经确认的间距和偏移。
+
+API 26 手机模拟器（1320×2848）修复前浮栏范围为 `[0,2313][1320,2502]`，修复后为 `[106,2538][1214,2727]`，恢复 328vp 胶囊宽度和手势区上方的 8vp 间距；顶部渐进模糊及浅色、深色下的浮栏材质均已截图验证。截图：[浅色滚动](screenshots/phone-dock-fixed-light.png)、[深色滚动](screenshots/phone-dock-fixed-dark.png)。依据：[Tabs 沉浸式 FAQ](https://developer.huawei.com/consumer/cn/doc/doccenter-dev-faq/faqs-arkui-1584)、[悬浮栏宽度规则](https://developer.huawei.com/consumer/cn/doc/doccenter-references/api/ts-container-tabs#floatingtabbarwidth)。
 
 ## 底部绘制与顶部沉浸
 

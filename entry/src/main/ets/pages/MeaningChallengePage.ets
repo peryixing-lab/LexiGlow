@@ -1,9 +1,11 @@
+import { LengthMetrics } from '@kit.ArkUI';
 import { Word } from '../model/AppModels';
 import { LearningService } from '../service/LearningService';
 import { ChallengeService } from '../service/ChallengeService';
 import { AudioService } from '../service/AudioService';
 import { meaningAnswers } from '../utils/MeaningMatcher';
 import { bottomContentOffset } from '../utils/SafeAreaUtils';
+import { pageHorizontalPadding, responsiveCardWidth } from '../utils/ResponsiveLayout';
 
 @ComponentV2
 export struct MeaningChallengePage {
@@ -95,7 +97,12 @@ export struct MeaningChallengePage {
     }
   }
 
-  private isWide(): boolean { return this.pageWidth >= 840; }
+  private isWide(): boolean { return this.pageWidth >= 760; }
+
+  private halfContentWidth(): number {
+    const contentWidth = Math.max(0, Math.min(this.pageWidth, 1200) - pageHorizontalPadding(this.pageWidth) * 2);
+    return responsiveCardWidth(contentWidth, 2, 28);
+  }
 
   private isShort(): boolean { return this.pageHeight > 0 && this.pageHeight < 560; }
 
@@ -187,23 +194,23 @@ export struct MeaningChallengePage {
           }.width('100%')
           Progress({ value: this.index, total: this.total, type: ProgressType.Linear })
             .color($r('app.color.success')).backgroundColor($r('app.color.soft_surface')).style({ strokeWidth: 4 })
-          if (this.isWide()) {
-            Row({ space: 28 }) {
-              Column() { this.questionContent(); }.layoutWeight(1)
-              Column() { this.answerContent(); }.layoutWeight(1)
-            }.width('100%').alignItems(VerticalAlign.Top)
-          } else {
-            this.questionContent()
-            this.answerContent()
-          }
+          Flex({ direction: this.isWide() ? FlexDirection.Row : FlexDirection.Column,
+            alignItems: ItemAlign.Start,
+            space: { main: LengthMetrics.vp(this.isWide() ? 28 : this.contentSpacing()) } }) {
+            Column() { this.questionContent(); }
+              .width(this.isWide() ? this.halfContentWidth() : '100%').flexShrink(0)
+            Column() { this.answerContent(); }
+              .width(this.isWide() ? this.halfContentWidth() : '100%').flexShrink(0)
+          }.width('100%')
           Text('题目来自你的已学单词 · 独立练习计分').fontSize(12)
             .fontColor($r('app.color.text_secondary')).width('100%')
         }
-        }.padding(this.pageWidth > 0 && this.pageWidth < 360 ? 16 : 24).width('100%')
-          .constraintSize({ maxWidth: this.isWide() ? 1040 : 680 })
+        }.padding(pageHorizontalPadding(this.pageWidth)).width('100%')
+          .constraintSize({ maxWidth: this.isWide() ? 1200 : 680 })
       }.width('100%').height('100%').contentStartOffset(56 + this.topInset)
         .contentEndOffset(bottomContentOffset(this.getUIContext()))
         .scrollBar(this.pageWidth >= 600 ? BarState.Auto : BarState.Off)
+        .align(this.pageWidth >= 600 ? Alignment.Top : Alignment.Center)
     }.width('100%').height('100%')
       .backgroundColor($r('app.color.background'))
       .onAreaChange((_oldArea: Area, area: Area) => {

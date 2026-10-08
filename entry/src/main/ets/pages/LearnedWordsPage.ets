@@ -3,6 +3,8 @@ import { LearningService } from '../service/LearningService';
 import { dateKey } from '../utils/TimeUtils';
 import { strengthName } from '../utils/MemoryUtils';
 import { bottomContentOffset } from '../utils/SafeAreaUtils';
+import { PAGE_MAX_WIDTH, pageHorizontalPadding, wordListColumnCount } from '../utils/ResponsiveLayout';
+import { deviceInfo } from '@kit.BasicServicesKit';
 
 @ComponentV2
 export struct LearnedWordsPage {
@@ -111,9 +113,16 @@ export struct LearnedWordsPage {
     return day ? day.count : 0;
   }
 
-  private isWide(): boolean { return this.pageWidth >= 840; }
+  private pagePadding(): number { return pageHorizontalPadding(this.pageWidth); }
 
-  private pagePadding(): number { return this.pageWidth > 0 && this.pageWidth < 360 ? 16 : 24; }
+  private usesLargeWordList(): boolean {
+    return deviceInfo.deviceType === 'tablet' || deviceInfo.deviceType === '2in1';
+  }
+
+  private columnCount(): number {
+    const contentWidth = Math.max(0, Math.min(this.pageWidth, PAGE_MAX_WIDTH) - this.pagePadding() * 2);
+    return wordListColumnCount(contentWidth, 14);
+  }
 
   @Builder
   private dateChip(day: LearnedDate) {
@@ -129,15 +138,23 @@ export struct LearnedWordsPage {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 12 }) {
         Column({ space: 7 }) {
-          Text(item.word.word).fontSize(21).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
-          Text(item.word.meaning).fontSize(14).lineHeight(22).fontColor($r('app.color.text_secondary')).maxLines(2)
+          if (this.usesLargeWordList()) {
+            Text(item.word.word).fontSize(21).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
+              .width('100%').maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+            Text(item.word.meaning).fontSize(14).lineHeight(22).fontColor($r('app.color.text_secondary'))
+              .width('100%').height(44).maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
+          } else {
+            Text(item.word.word).fontSize(21).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
+            Text(item.word.meaning).fontSize(14).lineHeight(22).fontColor($r('app.color.text_secondary')).maxLines(2)
+          }
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         Column({ space: 6 }) {
           Text(strengthName(item.strength)).fontSize(12).fontColor($r('app.color.success'))
           Text('›').fontSize(26).fontColor($r('app.color.text_secondary'))
         }
       }
-    }.padding(20).width('100%').backgroundColor($r('app.color.surface')).borderRadius(20).focusable(true)
+    }.padding(20).width('100%').height(this.usesLargeWordList() ? 120 : undefined)
+      .backgroundColor($r('app.color.surface')).borderRadius(20).focusable(true)
       .hoverEffect(HoverEffect.Auto).accessibilityText(`${item.word.word}，${item.word.meaning}，查看单词详情`)
       .onClick(() => { this.onOpenWord(item.word.id, item.word.sourceBookId); })
   }
@@ -219,9 +236,9 @@ export struct LearnedWordsPage {
             ListItem() { this.wordRow(item); }
           }, (item: LearnedWord) => `${item.word.id}`)
         }
-      }.lanes(this.isWide() ? 2 : 1, 14)
+      }.lanes(this.columnCount(), 14)
         .padding({ left: this.pagePadding(), right: this.pagePadding() }).width('100%').height('100%')
-        .constraintSize({ maxWidth: 1040 }).scrollBar(this.pageWidth >= 600 ? BarState.Auto : BarState.Off)
+        .constraintSize({ maxWidth: PAGE_MAX_WIDTH }).scrollBar(this.pageWidth >= 600 ? BarState.Auto : BarState.Off)
         .contentStartOffset(66 + this.topInset).contentEndOffset(bottomContentOffset(this.getUIContext()))
         .onReachEnd(() => {
           if (this.ready && this.dates.length > 0) { this.loadWords(false); }

@@ -7,6 +7,7 @@ export class AdaptiveWindowState {
   @Trace topInset: number = 0;
   @Trace bottomInset: number = 0;
   @Trace keepSystemTop: boolean = deviceInfo.deviceType === '2in1' || deviceInfo.deviceType === 'tablet';
+  @Trace isFloating: boolean = false;
 }
 
 export function adaptiveWindowState(): AdaptiveWindowState {
@@ -17,10 +18,15 @@ export class AdaptiveWindowController {
   private mainWindow: window.Window;
   private state: AdaptiveWindowState = adaptiveWindowState();
   private listening: boolean = false;
+  private windowStatusListening: boolean = false;
   private readonly avoidListener: (options: window.AvoidAreaOptions) => void =
     (_options: window.AvoidAreaOptions): void => { this.refreshInsets(); };
   private readonly sizeListener: (size: window.Size) => void =
     (_size: window.Size): void => { this.refreshInsets(); };
+  private readonly windowStatusListener: (status: window.WindowStatusType) => void =
+    (status: window.WindowStatusType): void => {
+      this.state.isFloating = status === window.WindowStatusType.FLOATING;
+    };
 
   constructor(mainWindow: window.Window) {
     this.mainWindow = mainWindow;
@@ -33,6 +39,15 @@ export class AdaptiveWindowController {
     this.mainWindow.on('avoidAreaChange', this.avoidListener);
     this.mainWindow.on('windowSizeChange', this.sizeListener);
     this.listening = true;
+    if (deviceInfo.deviceType === 'tablet') {
+      try {
+        this.windowStatusListener(this.mainWindow.getWindowStatus());
+      } catch {}
+      try {
+        this.mainWindow.on('windowStatusDidChange', this.windowStatusListener);
+        this.windowStatusListening = true;
+      } catch {}
+    }
   }
 
   private refreshInsets(): void {
@@ -51,6 +66,12 @@ export class AdaptiveWindowController {
     if (!this.listening) { return; }
     this.mainWindow.off('avoidAreaChange', this.avoidListener);
     this.mainWindow.off('windowSizeChange', this.sizeListener);
+    if (this.windowStatusListening) {
+      try {
+        this.mainWindow.off('windowStatusDidChange', this.windowStatusListener);
+      } catch {}
+      this.windowStatusListening = false;
+    }
     this.listening = false;
   }
 }
