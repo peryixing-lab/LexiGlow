@@ -2,7 +2,9 @@ import { common } from '@kit.AbilityKit';
 import { util } from '@kit.ArkTS';
 import { fileIo, picker } from '@kit.CoreFileKit';
 import { DocxReader } from './DocxReader';
-import { Word } from '../model/AppModels';
+import { Word, DataExport } from '../model/AppModels';
+import { BackupService } from './BackupService';
+import { dateKey } from '../utils/TimeUtils';
 
 export class ImportedBook {
   name: string;
@@ -14,6 +16,7 @@ export class ImportedBook {
 }
 
 class ImportDocument {
+  format: string = '';
   name: string = '';
   words: Word[] = [];
 }
@@ -70,9 +73,40 @@ export class TransferService {
     }
   }
 
+  static async importBackup(context: common.UIAbilityContext): Promise<DataExport> {
+    const options = new picker.DocumentSelectOptions();
+    options.maxSelectNumber = 1;
+    options.fileSuffixFilters = ['词萤学习备份|.json'];
+    const uris = await new picker.DocumentViewPicker(context).select(options);
+    if (uris.length === 0) { throw new Error('已取消选择文件'); }
+    const file = await fileIo.open(uris[0], fileIo.OpenMode.READ_ONLY);
+    try {
+      const stat = await fileIo.stat(file.fd);
+      if (stat.size <= 0 || stat.size > BackupService.MAX_BYTES) {
+        throw new Error('请选择不超过 20 MB 的词萤学习备份');
+      }
+      const bytes = new Uint8Array(stat.size);
+      let offset = 0;
+      while (offset < stat.size) {
+        const chunk = new ArrayBuffer(Math.min(1024 * 1024, stat.size - offset));
+        const count = await fileIo.read(file.fd, chunk);
+        if (count <= 0) { throw new Error('备份未能完整读取，请重新选择'); }
+        bytes.set(new Uint8Array(chunk, 0, count), offset);
+        offset += count;
+      }
+      let text: string;
+      try { text = util.TextDecoder.create('utf-8', { fatal: true }).decodeToString(bytes); }
+      catch (_) { throw new Error('备份编码有误，请选择词萤导出的 JSON 文件'); }
+      return BackupService.parse(text);
+    } finally { await fileIo.close(file); }
+  }
+
   static async exportFile(context: common.UIAbilityContext, data: string): Promise<string> {
+    if (new util.TextEncoder().encodeInto(data).byteLength > BackupService.MAX_BYTES) {
+      throw new Error('学习备份超过 20 MB，暂时无法导出完整备份');
+    }
     return TransferService.save(context, data,
-      `词萤学习备份_${new Date().toISOString().slice(0, 10)}.json`, 'JSON 数据|.json');
+      `词萤学习备份_${dateKey(Date.now())}.json`, 'JSON 数据|.json');
   }
 
   static async exportBookFile(context: common.UIAbilityContext, name: string, words: Word[],
@@ -145,11 +179,12 @@ export class TransferService {
     let bookName = name;
     let allowPendingMeaning = false;
     if (content.startsWith('[') || content.startsWith('{')) {
+      let document: ImportDocument | undefined = undefined;
       try {
         if (content.startsWith('[')) {
           words = JSON.parse(content) as Word[];
         } else {
-          const document = JSON.parse(content) as ImportDocument;
+          document = JSON.parse(content) as ImportDocument;
           words = document.words;
           if (typeof document.name === 'string' && document.name.trim().length > 0) {
             bookName = document.name.trim();
@@ -157,6 +192,9 @@ export class TransferService {
         }
       } catch (_error) {
         throw new Error('JSON 格式有误，请使用单词数组或含 words 数组的词书');
+      }
+      if (document?.format === 'ciying-learning-backup') {
+        throw new Error('这是学习备份，请到「我的 → 从备份恢复进度」恢复，不能作为词书导入');
       }
     } else if (TransferService.hasHeader(content, ',')) {
       words = TransferService.csvWords(content);

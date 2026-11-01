@@ -25,6 +25,7 @@
         "startWindowIcon": "$media:ciying_icon",
         "startWindowBackground": "$color:start_window_background",
         "launchType": "singleton",
+        "backgroundModes": ["audioPlayback"],
         "orientation": "auto_rotation",
         "exported": true,
         "skills": [
@@ -35,11 +36,36 @@
             "actions": [
               "ohos.want.action.home"
             ]
+          },
+          {
+            "entities": ["entity.system.browsable"],
+            "actions": ["ohos.want.action.viewData"],
+            "uris": [{ "scheme": "lexiglow", "host": "study", "path": "plan" }]
           }
         ]
       }
     ],
     "extensionAbilities": [
+      {
+        "name": "WordSelectionAbility",
+        "srcEntry": "./ets/selectionability/WordSelectionAbility.ets",
+        "type": "selection",
+        "exported": true,
+        "label": "$string:app_name",
+        "description": "$string:module_desc"
+      },
+      {
+        "name": "WordShareAbility",
+        "srcEntry": "./ets/shareability/WordShareAbility.ets",
+        "type": "share",
+        "exported": true,
+        "label": "$string:app_name",
+        "icon": "$media:ciying_icon",
+        "skills": [{
+          "actions": ["ohos.want.action.sendData"],
+          "uris": [{ "scheme": "file", "utd": "general.plain-text", "maxFileSupported": 1 }]
+        }]
+      },
       {
         "name": "EntryFormAbility",
         "srcEntry": "./ets/entryformability/EntryFormAbility.ets",
@@ -65,7 +91,23 @@
       }
     ],
     "requestPermissions": [
-      { "name": "ohos.permission.PUBLISH_AGENT_REMINDER" }
+      {
+        "name": "ohos.permission.MICROPHONE",
+        "reason": "$string:permission_microphone_reason",
+        "usedScene": { "abilities": ["EntryAbility"], "when": "inuse" }
+      },
+      { "name": "ohos.permission.VIBRATE" },
+      { "name": "ohos.permission.KEEP_BACKGROUND_RUNNING" },
+      {
+        "name": "ohos.permission.PUBLISH_AGENT_REMINDER",
+        "reason": "$string:permission_reminder_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "always"
+        }
+      }
     ]
   }
 }

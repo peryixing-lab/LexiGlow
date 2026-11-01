@@ -1,8 +1,11 @@
+import { PracticeJournal } from '../service/ExperienceService';
 import { LengthMetrics } from '@kit.ArkUI';
+import { common } from '@kit.AbilityKit';
 import { Word } from '../model/AppModels';
 import { LearningService } from '../service/LearningService';
 import { ChallengeService } from '../service/ChallengeService';
 import { AudioService } from '../service/AudioService';
+import { PronunciationPresenter } from '../service/PronunciationPresenter';
 import { meaningAnswers } from '../utils/MeaningMatcher';
 import { bottomContentOffset } from '../utils/SafeAreaUtils';
 import { pageHorizontalPadding, responsiveCardWidth } from '../utils/ResponsiveLayout';
@@ -11,6 +14,10 @@ import { pageHorizontalPadding, responsiveCardWidth } from '../utils/ResponsiveL
 export struct MeaningChallengePage {
   @Event onLearn: () => void = () => {};
   @Event onLearnedWords: () => void = () => {};
+  @Param preferredIds: number[] = [];
+  @Local evidenceBusy: boolean = false;
+  @Local evidenceError: string = '';
+  private journal: PracticeJournal = new PracticeJournal();
   @Param topInset: number = 0;
   @Local pageWidth: number = 0;
   @Local pageHeight: number = 0;
@@ -24,31 +31,47 @@ export struct MeaningChallengePage {
   @Local answered: boolean = false;
   @Local correct: boolean = false;
   @Local complete: boolean = false;
+  @Local pronunciationMessage: string = '';
   private readonly challenge: ChallengeService = new ChallengeService();
   private readonly inputController: TextInputController = new TextInputController();
   private active: boolean = false;
   private requestVersion: number = 0;
+  private foreground: boolean = true;
+  private visible: boolean = true;
+  private readonly pronunciation: PronunciationPresenter = new PronunciationPresenter();
+  private context(): common.UIAbilityContext {
+    return this.getUIContext().getHostContext() as common.UIAbilityContext;
+  }
+  private visibilityListener: (visible: boolean) => void = (visible: boolean): void => {
+    this.foreground = visible;
+    if (!visible) { this.pronunciation.cancel(); this.journal.pause(); }
+    else if (this.visible) { this.journal.resume(); }
+  };
 
   aboutToAppear(): void {
     this.active = true;
+    this.context().eventHub.on('appVisibility', this.visibilityListener);
     this.startRound();
   }
 
   aboutToDisappear(): void {
+    this.journal.pause();
     this.active = false;
     this.requestVersion++;
+    this.pronunciation.cancel();
+    this.context().eventHub.off('appVisibility', this.visibilityListener);
     this.loading = false;
     this.inputController.stopEditing();
     AudioService.getInstance().stop();
   }
 
   private async startRound(): Promise<void> {
-    if (this.loading) { return; }
+    if (this.loading || this.evidenceBusy || !!this.evidenceError) { return; }
     const version = ++this.requestVersion;
     this.loading = true;
     this.error = '';
     try {
-      const candidates = await LearningService.getInstance().getChallengeWords(50);
+      const candidates = this.preferredIds.length > 0 ? await LearningService.getInstance().getTargetedWords(this.preferredIds) : await LearningService.getInstance().getChallengeWords(50);
       if (!this.active || version !== this.requestVersion) { return; }
       this.challenge.start(candidates.filter((item: Word) => meaningAnswers(item.meaning).length > 0).slice(0, 10));
       this.syncQuestion();
@@ -60,6 +83,9 @@ export struct MeaningChallengePage {
   }
 
   private syncQuestion(): void {
+    this.journal.beginQuestion(); this.evidenceError = ''; this.evidenceBusy = false;
+    this.pronunciation.cancel();
+    AudioService.getInstance().stop();
     this.word = this.challenge.currentWord() || new Word();
     this.index = this.challenge.getIndex();
     this.total = this.challenge.getTotal();
@@ -69,6 +95,7 @@ export struct MeaningChallengePage {
     this.correct = false;
     this.answer = '';
     this.error = '';
+    this.pronunciationMessage = '';
   }
 
   private submit(): void {
@@ -79,22 +106,35 @@ export struct MeaningChallengePage {
       this.correctCount = this.challenge.getCorrectCount();
       this.error = '';
       this.inputController.stopEditing();
+      this.saveEvidence();
     } catch (error) {
       this.error = (error as Error).message || '请输入一个中文意思。';
     }
   }
 
+  private async saveEvidence(): Promise<void> {
+    if (this.evidenceBusy || !this.answered) { return; }
+    const version = this.requestVersion; this.evidenceBusy = true; this.evidenceError = '';
+    try { await this.journal.record(this.word.id, 'meaning', this.correct, false); }
+    catch { if (this.active && version === this.requestVersion) { this.evidenceError = '这一题暂未保存，请重试。'; } }
+    finally { if (this.active && version === this.requestVersion) { this.evidenceBusy = false; } }
+  }
+
   private next(): void {
+    if (this.evidenceBusy || this.evidenceError) { return; }
     if (!this.answered) { return; }
     this.challenge.next();
     this.syncQuestion();
   }
 
   private async pronounce(): Promise<void> {
-    try { await AudioService.getInstance().speak(this.word.word); }
-    catch (error) {
-      this.getUIContext().getPromptAction().showToast({ message: '当前设备暂时无法播放英文发音。' });
-    }
+    const wordId = this.word.id;
+    const index = this.index;
+    const version = this.requestVersion;
+    await this.pronunciation.play(this.word.word, this.getUIContext(),
+      (): boolean => this.active && this.foreground && this.visible && !this.complete &&
+        wordId === this.word.id && index === this.index && version === this.requestVersion,
+      (_state: string, message: string): void => { this.pronunciationMessage = message; });
   }
 
   private isWide(): boolean { return this.pageWidth >= 760; }
@@ -129,6 +169,10 @@ export struct MeaningChallengePage {
           .hoverEffect(HoverEffect.Auto).onClick(() => { this.pronounce(); })
         Blank().layoutWeight(1)
       }.width('100%')
+      if (this.pronunciationMessage) {
+        Text(this.pronunciationMessage).fontSize(13).lineHeight(22)
+          .fontColor($r('app.color.text_secondary')).width('100%')
+      }
     }.padding({ top: this.isShort() ? 12 : 30, bottom: this.isShort() ? 12 : 22 }).width('100%')
   }
 
@@ -143,6 +187,13 @@ export struct MeaningChallengePage {
         .accessibilityText('中文释义答案').enabled(!this.answered).enterKeyType(EnterKeyType.Done)
         .onChange((value: string) => { this.answer = value; this.error = ''; })
         .onSubmit(() => { this.submit(); })
+        if (this.evidenceError) {
+          Text(this.evidenceError).fontSize(14).fontColor($r('app.color.text_secondary'))
+          Button('重新保存这一题').height(44).enabled(!this.evidenceBusy)
+            .backgroundColor($r('app.color.soft_surface')).fontColor($r('app.color.text_primary'))
+            .onClick(() => { this.saveEvidence(); })
+        }
+        if (this.evidenceBusy) { Text('正在保存这一题…').fontSize(13).fontColor($r('app.color.text_secondary')) }
       if (this.answered) {
         Column({ space: 12 }) {
           Text(this.correct ? '答对了。' : '这次没答对，再看一眼释义。')
@@ -213,6 +264,11 @@ export struct MeaningChallengePage {
         .align(this.pageWidth >= 600 ? Alignment.Top : Alignment.Center)
     }.width('100%').height('100%')
       .backgroundColor($r('app.color.background'))
+      .onVisibleAreaChange([0, 1], (visible: boolean) => {
+        this.visible = visible;
+        if (!visible) { this.pronunciation.cancel(); this.journal.pause(); }
+        else if (this.foreground) { this.journal.resume(); }
+      })
       .onAreaChange((_oldArea: Area, area: Area) => {
         this.pageWidth = Number(area.width);
         this.pageHeight = Number(area.height);

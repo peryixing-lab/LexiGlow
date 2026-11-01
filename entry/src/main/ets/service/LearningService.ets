@@ -1,12 +1,16 @@
+import { ExperienceRepository } from '../repository/ExperienceRepository';
+import { ExperienceService } from './ExperienceService';
 import { common } from '@kit.AbilityKit';
 import { util } from '@kit.ArkTS';
-import { AppSnapshot, DailyPlan, DataExport, DictionaryBook, DictionaryCatalog, ReviewRecord, ReviewResult,
-  LearnedDate, LearnedWord, StudyItem, StudySession, UserSettings, Word, WordProgress } from '../model/AppModels';
+import { PracticeResult, WordEnrichment, AppSnapshot, DailyPlan, DataExport, DictionaryBook, DictionaryCatalog, ReviewRecord, ReviewResult,
+  LearnedDate, LearnedWord, MistakeWord, WordIdentity, WordBook, MasteredWord, StudyItem, StudySession, UserSettings, Word, WordProgress } from '../model/AppModels';
+import { ArticleService } from './ArticleService';
+import { BackupService } from './BackupService';
 import { DatabaseManager } from '../repository/DatabaseManager';
 import { LearningRepository } from '../repository/LearningRepository';
 import { UserSettingsStore } from '../store/UserSettingsStore';
 import { dateKey, dayStart } from '../utils/TimeUtils';
-import { adjustedNewTarget, scheduleReview } from './ReviewScheduler';
+import { dailyReviewQuota, examPlanAdvice, scheduleReview } from './ReviewScheduler';
 
 /** The UI only talks to this service; SQL, scheduling, and durable resume stay below the page layer. */
 export class LearningService {
@@ -18,6 +22,15 @@ export class LearningService {
   private initializing: Promise<void> | undefined = undefined;
   private answering: Promise<StudySession> | undefined = undefined;
   private ready: boolean = false;
+  private undoAvailable: boolean = false;
+  private operations: Promise<void> = Promise.resolve();
+
+  /** A restore must not race an older plan refresh, setting change, answer, or export snapshot. */
+  private serialize<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.operations.then(operation);
+    this.operations = result.then(() => {}, () => {});
+    return result;
+  }
 
   static getInstance(): LearningService {
     return LearningService.instance;
@@ -40,7 +53,7 @@ export class LearningService {
 
   private async prepare(context: common.Context): Promise<void> {
     await this.database.initialize(context);
-    await this.settingsStore.initialize(context);
+    await this.settingsStore.initialize(context, this.database);
     const bytes = await context.resourceManager.getRawFileContent('wordbooks/catalog.json');
     const catalog = JSON.parse(util.TextDecoder.create('utf-8').decodeToString(bytes)) as DictionaryCatalog;
     if (!Number.isInteger(catalog.version) || catalog.version < 1 || !Array.isArray(catalog.books) ||
@@ -52,6 +65,8 @@ export class LearningService {
     }
     await this.repository.importCatalog(catalog);
     await this.repository.migrateLearningSemantics();
+    await this.repository.migrateAdaptiveMetrics();
+    await this.repository.importEnrichmentSeeds();
     const settings = this.getSettings();
     const books = await this.repository.getBooks();
     if (books.length === 0) {
@@ -61,6 +76,9 @@ export class LearningService {
       settings.currentBookId = books[0].id;
       await this.settingsStore.save(settings);
     }
+    await this.repository.clearUndo();
+    ExperienceService.getInstance().initialize(this.database);
+    ArticleService.getInstance().initialize(context, this.database);
     this.session = await this.repository.loadSession();
     await this.ensurePlan();
     this.ready = true;
@@ -70,62 +88,38 @@ export class LearningService {
     return this.settingsStore.getSettings();
   }
 
-  async updateSettings(settings: UserSettings): Promise<void> {
+  updateSettings(settings: UserSettings): Promise<void> {
+    return this.serialize(() => this.updateSettingsNow(settings));
+  }
+
+  private async updateSettingsNow(settings: UserSettings): Promise<void> {
     const books = await this.repository.getBooks();
     if (!books.some((book) => book.id === settings.currentBookId)) {
       throw new Error('请选择一个已有词书');
     }
     await this.settingsStore.save(settings);
-    const current = await this.ensurePlan();
-    await this.refreshPlan(current.budget);
-  }
-
-  async setBudget(budget: string): Promise<void> {
-    if (['busy', 'normal', 'free'].indexOf(budget) < 0) {
-      throw new Error('请选择很忙、正常或有空');
-    }
     await this.ensurePlan();
-    await this.refreshPlan(budget);
   }
 
   private async ensurePlan(now: number = Date.now()): Promise<DailyPlan> {
-    const key = dateKey(now);
-    const plan = await this.repository.getPlan(key);
-    if (!plan) {
-      return this.refreshPlan('normal', now);
-    }
-    // The due queue can grow while the app is open (including a forgotten word after ten minutes).
-    const due = await this.repository.countDue(now);
-    const cap = plan.budget === 'busy' ? 15 : (plan.budget === 'free' ? 100 : 60);
-    const target = Math.max(plan.reviewDone, Math.min(cap, due + plan.reviewDone));
-    const settings = this.getSettings();
-    const base = this.newTargetFor(settings, plan.budget);
-    const available = await this.repository.countUnlearned(settings.currentBookId);
-    const newTarget = Math.max(plan.newDone, Math.min(plan.newDone + available, adjustedNewTarget(base, due)));
-    const minutes = Math.ceil((Math.max(0, newTarget - plan.newDone) * 30 +
-      Math.max(0, target - plan.reviewDone) * 12) / 60);
-    if (target !== plan.reviewTarget || newTarget !== plan.newTarget || minutes !== plan.estimatedMinutes) {
-      plan.reviewTarget = target;
-      plan.newTarget = newTarget;
-      plan.estimatedMinutes = minutes;
-      await this.repository.savePlan(plan);
-    }
-    return plan;
+    return this.refreshPlan(now);
   }
 
-  private async refreshPlan(budget: string, now: number = Date.now()): Promise<DailyPlan> {
+  private async refreshPlan(now: number = Date.now()): Promise<DailyPlan> {
     const settings = this.getSettings();
     const key = dateKey(now);
     const existing = await this.repository.getPlan(key);
     const plan = existing || new DailyPlan();
     plan.date = key;
-    plan.budget = budget;
+    // 旧预算/考试偏好仍可读取和导出，每日新词量始终使用用户保存的目标。
+    plan.budget = 'normal';
     const due = await this.repository.countDue(now);
+    // Persist today's largest workload so a 20% release never turns into the full queue mid-day.
+    plan.backlogCount = Math.max(plan.backlogCount, due + plan.reviewDone);
+    plan.reviewTarget = Math.max(plan.reviewDone, dailyReviewQuota(plan.backlogCount, 'normal'));
     const available = await this.repository.countUnlearned(settings.currentBookId);
-    const base = this.newTargetFor(settings, budget);
-    plan.newTarget = Math.max(plan.newDone, Math.min(plan.newDone + available, adjustedNewTarget(base, due)));
-    const cap = budget === 'busy' ? 15 : (budget === 'free' ? 100 : 60);
-    plan.reviewTarget = Math.max(plan.reviewDone, Math.min(cap, due + plan.reviewDone));
+    plan.newTarget = Math.max(plan.newDone, Math.min(plan.newDone + available,
+      settings.dailyNewTarget));
     plan.estimatedMinutes = this.estimateMinutes(plan);
     await this.repository.savePlan(plan);
     return plan;
@@ -136,22 +130,23 @@ export class LearningService {
       Math.max(0, plan.reviewTarget - plan.reviewDone) * 12) / 60);
   }
 
-  private newTargetFor(settings: UserSettings, budget: string): number {
-    const base = budget === 'busy' ? Math.min(5, settings.dailyNewTarget) :
-      (budget === 'free' ? Math.min(100, Math.round(settings.dailyNewTarget * 1.5)) : settings.dailyNewTarget);
-    return settings.learningMode === 'exam' ? Math.floor(base * 0.5) : base;
+  getSnapshot(): Promise<AppSnapshot> {
+    return this.serialize(() => this.getSnapshotNow());
   }
 
-  async getSnapshot(): Promise<AppSnapshot> {
+  private async getSnapshotNow(): Promise<AppSnapshot> {
     const now = Date.now();
     const snapshot = new AppSnapshot();
     snapshot.settings = this.getSettings();
     snapshot.plan = await this.ensurePlan(now);
     snapshot.books = await this.repository.getBooks();
     snapshot.dueCount = await this.repository.countDue(now);
+    snapshot.mistakeCount = await this.repository.scalar('SELECT COUNT(*) FROM word_progress WHERE wrong_count>0 AND strength<75');
     snapshot.favoriteCount = await this.repository.scalar('SELECT COUNT(*) FROM word_progress WHERE favorite=1');
     snapshot.newWordCount = await this.repository.scalar('SELECT COUNT(*) FROM word_progress WHERE is_new_word=1');
     snapshot.stats = await this.repository.getStatistics(now);
+    snapshot.advice = examPlanAdvice(snapshot.settings.examDate,
+      await this.repository.countUnlearned(snapshot.settings.currentBookId), snapshot.settings.dailyNewTarget, now);
     const selected = snapshot.books.find((book) => book.id === snapshot.settings.currentBookId);
     if (selected && selected.totalCount > 0) {
       const offset = Math.floor(dayStart(now) / 86400000) % selected.totalCount;
@@ -191,19 +186,68 @@ export class LearningService {
     return this.repository.getChallengeWords(limit, this.getSettings().currentBookId);
   }
 
+  async getTargetedWords(ids: number[]): Promise<Word[]> {
+    const words: Word[] = [];
+    for (const id of Array.from(new Set<number>(ids)).slice(0, 10)) {
+      const progress = await this.repository.getProgress(id);
+      if (progress.reviewCount > 0) {
+        try { words.push(await this.repository.getBookWord(this.getSettings().currentBookId, id)); }
+        catch { words.push(await this.repository.getWord(id)); }
+      }
+    }
+    return words;
+  }
+
+  getWordEnrichment(id: number): Promise<WordEnrichment> {
+    return this.repository.getWordEnrichment(id);
+  }
+
+  findWordBySpelling(headword: string): Promise<Word | undefined> {
+    return this.repository.findWordBySpelling(headword);
+  }
+
+  getNightWords(limit: number = 5): Promise<Word[]> {
+    return this.repository.getNightWords(Date.now(), limit, this.getSettings().currentBookId);
+  }
+
+  getAudioWords(limit: number = 30): Promise<Word[]> {
+    return this.repository.getAudioWords(Date.now(), limit, this.getSettings().currentBookId);
+  }
+
+  getDeskWords(limit: number = 30): Promise<Word[]> {
+    return this.getAudioWords(limit);
+  }
+
+  getSpellingWords(limit: number = 5): Promise<Word[]> {
+    return this.repository.getSpellingWords(limit, this.getSettings().currentBookId);
+  }
+
+  getConstellationWords(limit: number = 120): Promise<LearnedWord[]> {
+    return this.repository.getConstellationWords(limit);
+  }
+
+  savePracticeResult(mode: string, correct: number, total: number, durationMs: number): Promise<PracticeResult> {
+    return this.serialize(() => this.repository.savePracticeResult(mode, correct, total, durationMs, Date.now()));
+  }
+
+  getPracticeResults(limit: number = 10): Promise<PracticeResult[]> {
+    return this.repository.getPracticeResults(limit);
+  }
+
   setFavorite(id: number, value: boolean): Promise<void> {
-    return this.repository.setFlag(id, true, value);
+    return this.serialize(() => this.repository.setFlag(id, true, value));
   }
 
   setNewWord(id: number, value: boolean): Promise<void> {
-    return this.repository.setFlag(id, false, value);
+    return this.serialize(() => this.repository.setFlag(id, false, value));
   }
 
-  async startSession(mode: string): Promise<StudySession> {
-    if (this.answering) {
-      await this.answering;
-    }
-    if (['today', 'review', 'quick', 'onboarding'].indexOf(mode) < 0) {
+  startSession(mode: string): Promise<StudySession> {
+    return this.serialize(() => this.startSessionNow(mode));
+  }
+
+  private async startSessionNow(mode: string): Promise<StudySession> {
+    if (['today', 'review', 'quick', 'onboarding', 'mistake'].indexOf(mode) < 0) {
       throw new Error('未知学习模式');
     }
     if (this.session.mode === mode && this.session.index < this.session.items.length) {
@@ -215,17 +259,18 @@ export class LearningService {
     let reviewLimit = Math.max(0, plan.reviewTarget - plan.reviewDone);
     let newLimit = Math.max(0, plan.newTarget - plan.newDone);
     if (mode === 'review') {
-      reviewLimit = Math.min(100, await this.repository.countDue(now));
+      reviewLimit = Math.max(0, plan.reviewTarget - plan.reviewDone);
       newLimit = 0;
     } else if (mode === 'quick') {
-      reviewLimit = 5;
+      reviewLimit = Math.min(5, reviewLimit);
       newLimit = await this.repository.countDue(now) > 0 ? 3 : 6;
     } else if (mode === 'onboarding') {
       reviewLimit = 0;
       newLimit = 3;
     }
-    const due = await this.repository.getDue(now, reviewLimit, settings.learningMode === 'exam', settings.currentBookId);
-    const fresh = await this.repository.getUnlearned(settings.currentBookId, newLimit);
+    const due = mode === 'mistake' ? (await this.repository.getMistakes(0, 20)).map((item: MistakeWord) => item.word) :
+      await this.repository.getDue(now, reviewLimit, settings.learningMode === 'exam', settings.currentBookId, plan.backlogCount > 100);
+    const fresh = mode === 'mistake' ? [] : await this.repository.getUnlearned(settings.currentBookId, newLimit);
     const next = new StudySession();
     next.mode = mode;
     next.startedAt = now;
@@ -241,6 +286,7 @@ export class LearningService {
       item.type = 'new';
       next.items.push(item);
     }
+    this.undoAvailable = false;
     await this.repository.saveSession(next);
     this.session = next;
     return this.getSession();
@@ -253,7 +299,7 @@ export class LearningService {
 
   async record(result: ReviewResult, responseMs: number): Promise<StudySession> {
     if (!this.answering) {
-      this.answering = this.submit(result, responseMs);
+      this.answering = this.serialize(() => this.submit(result, responseMs));
     }
     try {
       return await this.answering;
@@ -270,21 +316,44 @@ export class LearningService {
     await this.ensurePlan(now);
     const item = this.session.items[this.session.index];
     const previous = await this.repository.getProgress(item.word.id);
-    const progress = scheduleReview(previous, result, now);
+    const progress = scheduleReview(previous, result, now, responseMs);
     const next = this.getSession();
     next.items[next.index].type = previous.reviewCount === 0 ? 'new' : 'review';
     next.index += 1;
     next.completed += 1;
-    await this.repository.record(previous, progress, result, responseMs, next, now);
+    await this.repository.record(previous, progress, result, responseMs, next, now, this.getSettings().dailyNewTarget + 5);
     this.session = next;
+    this.undoAvailable = true;
     return this.getSession();
   }
 
-  async clearSession(): Promise<void> {
-    if (this.answering) {
-      await this.answering;
-    }
+  canUndo(): boolean { return this.undoAvailable; }
+
+  invalidateUndo(): Promise<void> {
+    this.undoAvailable = false;
+    return this.serialize(() => this.repository.clearUndo());
+  }
+
+  undoLast(): Promise<StudySession> {
+    return this.serialize(async () => {
+      if (!this.undoAvailable) { throw new Error('没有可撤销的判断'); }
+      const session = await this.repository.undoLast();
+      this.undoAvailable = false;
+      if (!session) { throw new Error('没有可撤销的判断'); }
+      this.session = session;
+      return this.getSession();
+    });
+  }
+
+  getMistakes(offset: number = 0): Promise<MistakeWord[]> { return this.repository.getMistakes(offset); }
+
+  clearSession(): Promise<void> {
+    return this.serialize(() => this.clearSessionNow());
+  }
+
+  private async clearSessionNow(): Promise<void> {
     const next = new StudySession();
+    this.undoAvailable = false;
     await this.repository.saveSession(next);
     this.session = next;
   }
@@ -303,7 +372,11 @@ export class LearningService {
     }
   }
 
-  async importWords(bookName: string, words: Word[]): Promise<number> {
+  importWords(bookName: string, words: Word[]): Promise<number> {
+    return this.serialize(() => this.importWordsNow(bookName, words));
+  }
+
+  private async importWordsNow(bookName: string, words: Word[]): Promise<number> {
     this.validateWords(words);
     if (bookName.trim().length === 0 || bookName.length > 80) {
       throw new Error('词书名称需要为 1～80 个字');
@@ -317,7 +390,11 @@ export class LearningService {
     return this.repository.insertBook(book);
   }
 
-  async renameBook(bookId: string, name: string): Promise<void> {
+  renameBook(bookId: string, name: string): Promise<void> {
+    return this.serialize(() => this.renameBookNow(bookId, name));
+  }
+
+  private async renameBookNow(bookId: string, name: string): Promise<void> {
     if (name.trim().length === 0 || name.length > 80) {
       throw new Error('词书名称需要为 1～80 个字');
     }
@@ -328,7 +405,11 @@ export class LearningService {
     return this.repository.getBookWord(bookId, wordId);
   }
 
-  async updateBookWord(bookId: string, wordId: number, edited: Word): Promise<Word> {
+  updateBookWord(bookId: string, wordId: number, edited: Word): Promise<Word> {
+    return this.serialize(() => this.updateBookWordNow(bookId, wordId, edited));
+  }
+
+  private async updateBookWordNow(bookId: string, wordId: number, edited: Word): Promise<Word> {
     this.validateWords([edited]);
     const targetId = await this.repository.updateBookWord(bookId, wordId, edited);
     const saved = await this.repository.getBookWord(bookId, targetId);
@@ -382,15 +463,50 @@ export class LearningService {
     return resolved;
   }
 
-  async exportData(): Promise<string> {
+  restoreData(data: DataExport): Promise<number> {
+    return this.serialize(() => this.restoreDataNow(data));
+  }
+
+  private async restoreDataNow(data: DataExport): Promise<number> {
+    // Validate again at the mutation boundary; callers cannot bypass preview validation.
+    const backup = BackupService.parse(JSON.stringify(data));
+    // Notification registration/permission belongs to this installation, never to the source device.
+    const localSettings = this.getSettings();
+    backup.settings.reminderEnabled = localSettings.reminderEnabled;
+    backup.settings.reminderHour = localSettings.reminderHour;
+    backup.settings.reminderMinute = localSettings.reminderMinute;
+    const localBooks = await this.repository.getBooks();
+    if (!localBooks.some((book: WordBook) => book.id === backup.settings.currentBookId) &&
+      !backup.books.some((book: DictionaryBook) => book.id === backup.settings.currentBookId && book.category === 'custom')) {
+      backup.settings.currentBookId = localBooks[0].id;
+    }
+    const skipped = await this.repository.restoreBackup(backup);
+    this.undoAvailable = false;
+    this.settingsStore.acceptCommitted(backup.settings);
+    this.session = backup.session;
+    // Enrichment is derived from bundled seeds; rebuilding cannot invalidate a committed restore.
+    await this.repository.importEnrichmentSeeds().catch(() => {});
+    return skipped;
+  }
+
+  exportData(): Promise<string> {
+    return this.serialize(() => this.exportDataNow());
+  }
+
+  private async exportDataNow(): Promise<string> {
     const backup = new DataExport();
     backup.exportedAt = Date.now();
+    backup.dictionaryVersion = await this.repository.dictionaryVersion();
+    backup.compact = true;
+    backup.masteredWords = await this.repository.allMasteredWords();
     backup.settings = this.getSettings();
     backup.progress = await this.repository.allProgress();
     backup.records = await this.repository.allRecords();
     backup.plans = await this.repository.allPlans();
     backup.days = await this.repository.getDays();
     backup.session = this.getSession();
+    backup.practiceResults = await this.repository.getPracticeResults(100000);
+    backup.glowRecords = await this.repository.getGlowRecords();
     const books = await this.repository.getBooks();
     for (const item of books) {
       const book = new DictionaryBook();
@@ -398,9 +514,21 @@ export class LearningService {
       book.name = item.name;
       book.category = item.category;
       book.description = item.description;
-      book.words = await this.repository.getWords(item.id, 'all', '', 50000);
+      book.words = item.category === 'custom' ? await this.repository.backupBookWords(item.id) : [];
       backup.books.push(book);
     }
+    await new ExperienceRepository(this.database).exportInto(backup);
+    const referenced = new Set<number>();
+    backup.practiceAttempts.forEach((item) => { referenced.add(item.wordId); });
+    backup.sentences.forEach((item) => { referenced.add(item.wordId); });
+    backup.progress.forEach((p: WordProgress) => { referenced.add(p.wordId); });
+    backup.records.forEach((r: ReviewRecord) => { referenced.add(r.wordId); });
+    backup.masteredWords.forEach((m: MasteredWord) => { referenced.add(m.wordId); });
+    backup.session.items.forEach((item: StudyItem) => { referenced.add(item.word.id); });
+    backup.books.forEach((book: DictionaryBook) => { book.words.forEach((word: Word) => { referenced.add(word.id); }); });
+    backup.words = (await this.repository.backupNonBuiltinWords()).filter((word: Word) => referenced.has(word.id));
+    backup.wordIdentities = (await this.repository.allWords()).filter((word: Word) => referenced.has(word.id))
+      .map((word: Word) => { const identity = new WordIdentity(); identity.id = word.id; identity.word = word.word; return identity; });
     return JSON.stringify(backup, null, 2);
   }
 }

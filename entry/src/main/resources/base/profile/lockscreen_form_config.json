@@ -1,0 +1,21 @@
+{
+  "forms": [
+    {
+      "name": "lockscreen_word",
+      "displayName": "词萤锁屏一词",
+      "description": "词萤单词与音标；经锁屏卡片开放能力审核后可注册使用",
+      "src": "./ets/widget/pages/LockScreenWordCard.ets",
+      "uiSyntax": "arkts",
+      "isDefault": false,
+      "isDynamic": true,
+      "updateEnabled": true,
+      "updateDuration": 1,
+      "scheduledUpdateTime": "00:05",
+      "renderingMode": "singleColor",
+      "colorMode": "auto",
+      "defaultDimension": "1*2",
+      "supportDimensions": ["1*2"],
+      "supportDeviceTypes": ["phone", "tablet"]
+    }
+  ]
+}

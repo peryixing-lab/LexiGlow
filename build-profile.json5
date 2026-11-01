@@ -1,24 +1,8 @@
 {
   "app": {
-    "signingConfigs": [
-      {
-        "name": "default",
-        "type": "HarmonyOS",
-        "material": {
-          "storeFile": "/Users/thousandmiles/Desktop/密钥/LexiGlow.p12",
-          "storePassword": "0000001D8D47D53380A4F348E3CE06E6554FBEA48A7873125627A8BBD6764A814E2A950D459E6205673397EA42",
-          "keyAlias": "LexiGlow",
-          "keyPassword": "0000001DA6E8EECFA351B4A707B37CD0D78567CF4D9BCC6BEA6644320BD121AD5E9F6A2D76C81B2537A847BDC4",
-          "signAlg": "SHA256withECDSA",
-          "profile": "/Users/thousandmiles/Desktop/密钥/LexiGlowRelease.p7b",
-          "certpath": "/Users/thousandmiles/Desktop/密钥/LexiGlow.cer"
-        }
-      }
-    ],
     "products": [
       {
         "name": "default",
-        "signingConfig": "default",
         "targetSdkVersion": "26.0.0",
         "compatibleSdkVersion": "26.0.0",
         "runtimeOS": "HarmonyOS",
@@ -32,7 +16,7 @@
     ],
     "buildModeSet": [
       {
-        "name": "debug",
+        "name": "debug"
       },
       {
         "name": "release"

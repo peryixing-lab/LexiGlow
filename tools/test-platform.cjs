@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const Module = require('node:module');
+const { createNativeAudio, createVoiceResources, createClock, settle } = require('./native-audio-test-harness.cjs');
 const nativeZlib = require('node:zlib');
 const { execFileSync } = require('node:child_process');
 const deveco = process.env.DEVECO_STUDIO_HOME || '/Applications/DevEco-Studio.app/Contents';
@@ -10,22 +11,15 @@ const ts = require(process.env.LEXIGLOW_TYPESCRIPT ||
   path.join(deveco, 'plugins/openharmony/ace-server/node_modules/typescript'));
 const root = path.resolve(__dirname, '..');
 
-let listener;
-let engineParameters;
-let stops = 0;
-let shutdowns = 0;
-const spoken = [];
-const engine = {
-  setListener(value) { listener = value; },
-  speak(text, parameters) { spoken.push([text, parameters.requestId]); },
-  stop() { stops++; },
-  shutdown() { shutdowns++; }
-};
+const voiceResources = createVoiceResources();
+const nativeAudio = createNativeAudio();
 let notificationsEnabled = true;
 let nextReminderId = 12;
 const reminderRequests = [];
 const cancelledReminders = [];
 const reminderValues = new Map([['reminderId', 8]]);
+const nativeReminders = new Map([[8, { reminderType: 2, notificationId: 1024, hour: 21, minute: 0 }]]);
+const nativeExcludeDates = new Map();
 let inflateEndCount = 0;
 const xmlEventsScript = `import sys,json,xml.etree.ElementTree as ET
 root=ET.fromstring(sys.stdin.read())
@@ -86,10 +80,9 @@ const kitMocks = {
     xml: { XmlPullParser: MockXmlPullParser,
       EventType: { START_TAG: 2, END_TAG: 3, TEXT: 4, CDSECT: 5, ENTITY_REFERENCE: 9 } }
   },
-  '@kit.CoreFileKit': {},
-  '@kit.CoreSpeechKit': {
-    textToSpeech: { async createEngine(parameters) { engineParameters = parameters; return engine; } }
-  },
+  '@kit.CoreFileKit': { fileIo: voiceResources.fileIo },
+  '@kit.CoreSpeechKit': { textToSpeech: nativeAudio.tts },
+  '@kit.PerformanceAnalysisKit': { hilog: { warn() {}, info() {} } },
   '@kit.ArkData': {
     preferences: { async getPreferences() {
       return {
@@ -102,14 +95,27 @@ const kitMocks = {
   '@kit.NotificationKit': {
     notificationManager: {
       async isNotificationEnabled() { return notificationsEnabled; },
-      async requestEnableNotification() {}
+      async requestEnableNotification() {},
+      SlotType: { SERVICE_INFORMATION: 2 },
+      async cancel() {},
+      async getActiveNotifications() { return []; },
+      async addSlot(type) { assert.equal(type, 2); }
     }
   },
   '@kit.BackgroundTasksKit': {
     reminderAgentManager: {
-      async cancelReminder(id) { cancelledReminders.push(id); },
-      async publishReminder(request) { reminderRequests.push(request); return nextReminderId++; },
-      ReminderType: { REMINDER_TYPE_CALENDAR: 1 },
+      async cancelReminder(id) { cancelledReminders.push(id); nativeReminders.delete(id); nativeExcludeDates.delete(id); },
+      async publishReminder(request) {
+        reminderRequests.push(request);
+        const id = nextReminderId++; nativeReminders.set(id, request); nativeExcludeDates.set(id, []); return id;
+      },
+      async getExcludeDates(id) { return nativeExcludeDates.get(id) || []; },
+      async addExcludeDate(id, date) { nativeExcludeDates.set(id, [...(nativeExcludeDates.get(id) || []), date]); },
+      async deleteExcludeDates(id) { nativeExcludeDates.set(id, []); },
+      async getAllValidReminders() {
+        return [...nativeReminders].map(([reminderId, reminderReq]) => ({ reminderId, reminderReq }));
+      },
+      ReminderType: { REMINDER_TYPE_CALENDAR: 1, REMINDER_TYPE_ALARM: 2, REMINDER_TYPE_TIMER: 0 },
       ActionButtonType: { ACTION_BUTTON_TYPE_CLOSE: 0 }
     }
   }
@@ -131,7 +137,6 @@ const service = name => require(path.join(root, 'entry/src/main/ets/service', `$
 const { TransferService } = service('TransferService');
 const { AudioService } = service('AudioService');
 const { ReminderService } = service('ReminderService');
-const nextTurn = () => new Promise(resolve => setImmediate(resolve));
 
 async function testImport() {
   const validCases = [
@@ -256,37 +261,57 @@ async function testTextAndDocx() {
 }
 
 async function testAudio() {
-  const audio = AudioService.getInstance();
-  let finished = false;
-  let playback = audio.speak('glow').then(() => { finished = true; });
-  await nextTurn();
-  assert.deepEqual(engineParameters, { language: 'en-US', person: 8, online: 1 });
-  listener.onComplete(spoken[0][1], { type: 0 });
-  await nextTurn();
-  assert.equal(finished, false);
-  listener.onComplete(spoken[0][1], { type: 1 });
-  await playback;
-  playback = audio.speak('shine');
-  await nextTurn();
-  audio.stop();
-  await playback;
-  playback = audio.speak('learn');
-  await nextTurn();
-  listener.onError(spoken[2][1], 42, 'unavailable');
-  await assert.rejects(playback, /语音包/);
-  audio.release();
-  assert.equal(shutdowns, 1);
-  assert(stops >= 1);
-  await assert.rejects(audio.speak(''), /为空/);
-  console.log('PASS TTS offline parameters, synthesis-vs-playback completion, cancellation, error, resource release');
+  const clock = createClock(), audio = AudioService.getInstance();
+  audio.initialize(voiceResources.context);
+  try {
+    assert.equal(await audio.getEnglishVoiceStatus(), 'installed');
+    let finished = false;
+    let playback = audio.speak('glow').then(() => { finished = true; }); await settle();
+    const english = nativeAudio.engines[0];
+    assert.equal(english.params.language, 'en-US'); assert.equal(english.params.person, 8);
+    assert.equal(english.params.online, 1);
+    assert.equal(nativeAudio.spoken.at(-1).options.extraParams.soundChannel, 12);
+    await nativeAudio.complete(clock, undefined, 0); assert.equal(finished, false);
+    await nativeAudio.complete(clock); await playback;
+    playback = audio.speak('shine'); await settle(); audio.stop(); await playback;
+    assert.equal(english.active, false);
+    playback = audio.speak('learn');
+    const failure = assert.rejects(playback, error => error.message.includes('1002300005') &&
+      error.message.includes('System voice unavailable'));
+    await settle();
+    english.listener.onError(nativeAudio.spoken.at(-1).options.requestId, 1002300005, 'System voice unavailable');
+    await failure; assert.equal(english.shutdowns, 1);
+    assert.equal(nativeAudio.downloads.length, 0);
+
+    finished = false;
+    playback = audio.speak('微光', 'zh-CN').then(() => { finished = true; }); await settle();
+    const chinese = nativeAudio.engines.at(-1), request = nativeAudio.spoken.at(-1);
+    assert.equal(chinese.params.language, 'zh-CN'); assert.equal(chinese.params.online, 1);
+    assert.equal(chinese.params.extraParams.isBackStage, true);
+    chinese.listener.onComplete(request.options.requestId, { type: 0 }); await settle(); assert.equal(finished, false);
+    chinese.listener.onComplete(request.options.requestId, { type: 1 }); await playback;
+    audio.release(); await settle();
+    assert.ok(nativeAudio.engines.every(engine => engine.shutdowns === 1));
+    assert.equal(clock.timers.size, 0);
+    await assert.rejects(audio.speak(''), /为空/);
+    console.log('PASS Core Speech English and Chinese, audible type 0/1 completion, cancellation, error detail and cleanup');
+  } finally { audio.destroy(); await settle(); clock.restore(); }
 }
 
 async function testReminder() {
-  const context = { applicationInfo: { name: 'com.lovexjy.lexiglow' } };
+  const context = { abilityInfo: { bundleName: 'com.lovexjy.lexiglow' } };
   await ReminderService.configure(context, true, 21, 0);
   assert.deepEqual(reminderRequests[0].daysOfWeek, [1, 2, 3, 4, 5, 6, 7]);
   assert.equal(reminderRequests[0].wantAgent.parameters.route, 'today');
+  assert.equal(reminderRequests[0].slotType, 2);
+  assert.equal(reminderRequests[0].notificationId, 1024);
+  assert.equal(reminderRequests[0].reminderType, 1);
+  assert.equal(reminderRequests[0].dateTime.hour, 21);
+  assert.equal(reminderRequests[0].dateTime.minute, 0);
+  assert.equal(reminderRequests[0].content, '今天的任务还没完成哦，赶紧来学习吧');
+  assert.equal(reminderRequests[0].expiredContent, reminderRequests[0].content);
   assert.deepEqual(cancelledReminders, [8]);
+  assert.equal(nativeReminders.size, 1); assert.ok(!nativeReminders.has(8)); assert.ok(nativeReminders.has(12));
   assert.equal(reminderValues.get('reminderId'), 12);
   await ReminderService.configure(context, false, 21, 0);
   assert.deepEqual(cancelledReminders, [8, 12]);
@@ -295,7 +320,7 @@ async function testReminder() {
   await assert.rejects(ReminderService.configure(context, true, 21, 0), /通知/);
   assert.equal(reminderRequests.length, 1);
   await assert.rejects(ReminderService.configure(context, true, 99, 0), /有效/);
-  console.log('PASS reminders own-ID replacement/cancel, daily calendar, route, denied notifications and invalid time');
+  console.log('PASS conditional daily calendar, safe replacement/cancel, exact copy, route, denied notifications and invalid time');
 }
 
 function testFormSchema() {

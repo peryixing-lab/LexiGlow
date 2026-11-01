@@ -14,12 +14,13 @@ const compiled = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
 const layoutModule = new Module(filename, module);
 layoutModule.filename = filename;
 layoutModule._compile(compiled.outputText, filename);
-const { PAGE_MAX_WIDTH, pageHorizontalPadding, primaryNavigationRailWidth,
+const { PAGE_MAX_WIDTH, DASHBOARD_MAX_WIDTH, primaryPageMaxWidth, dashboardUsesColumns,
+  pageHorizontalPadding, primaryNavigationRailWidth,
   responsiveColumnCount, responsiveCardWidth, usesTopNavigation } = layoutModule.exports;
 
 const policies = [
   { name: 'books', minimum: 320, maximum: 3, gap: 12 },
-  { name: 'statistics/profile', minimum: 300, maximum: 2, gap: 16 },
+  { name: 'statistics/profile', minimum: 350, maximum: 2, gap: 20, pageIndex: 2 },
   { name: 'learned words', minimum: 320, maximum: 3, gap: 14 }
 ];
 const epsilon = 1e-7;
@@ -55,12 +56,13 @@ function windowGeometry(windowWidth, policy, deviceType = '2in1') {
   const rail = policy.name !== 'learned words' ? primaryNavigationRailWidth(windowWidth, deviceType) : 0;
   const paneWidth = windowWidth - rail;
   const padding = pageHorizontalPadding(paneWidth);
-  const contentWidth = Math.max(0, Math.min(paneWidth, PAGE_MAX_WIDTH) - padding * 2);
+  const contentWidth = Math.max(0, Math.min(paneWidth, primaryPageMaxWidth(policy.pageIndex || 0)) - padding * 2);
   return { paneWidth, padding, contentWidth, ...cardGeometry(contentWidth, policy) };
 }
 
 check('phone, tablet and 2in1 panes fit every card policy', () => {
-  assert.equal(PAGE_MAX_WIDTH, 1600, 'wide dashboards retain the agreed 1600vp page width');
+  assert.equal(PAGE_MAX_WIDTH, 1600, 'catalogues retain their existing width');
+  assert.equal(DASHBOARD_MAX_WIDTH, 1600, 'settings and statistics match the full page width');
   const windows = [
     ['small phone', 320, 'phone'], ['phone', 390, 'phone'], ['phone landscape', 780, 'phone'],
     ['tablet portrait', 768, 'tablet'], ['tablet landscape', 1280, 'tablet'],
@@ -97,8 +99,17 @@ check('known 49% plus 16vp small-window overflow is eliminated', () => {
   const contentWidth = 672;
   assert.ok(contentWidth * 0.49 * 2 + 16 > contentWidth, 'fixture reproduces the old wrapped half-card');
   const result = cardGeometry(contentWidth, policies[1]);
-  assert.equal(result.columns, 2);
-  assert.ok(Math.abs(result.cardWidth * 2 + 16 - contentWidth) < epsilon);
+  assert.equal(result.columns, 1, 'a narrow dashboard keeps controls on a full-width card');
+  assert.equal(result.cardWidth, contentWidth);
+});
+
+check('dashboards use one or two readable columns at the actual content boundary', () => {
+  for (const width of [0, 350, 672, 719.99, 720, 720.01, 1136, 2560]) {
+    const columns = cardGeometry(width, policies[1]).columns;
+    assert.equal(dashboardUsesColumns(width), columns === 2);
+  }
+  for (const index of [0, 1, 2, 3]) { assert.equal(primaryPageMaxWidth(index), 1600); }
+  assert.equal(windowGeometry(1920, policies[1]).cardWidth, 758);
 });
 
 check('proportionally smaller fullscreen windows select readable 3, 2 and 1 columns', () => {

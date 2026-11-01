@@ -20,16 +20,14 @@ export struct ImmersiveDock {
   @Param tabsController: TabsController = new TabsController();
   @Local windowState: AdaptiveWindowState = adaptiveWindowState();
   private readonly nativeMaterial: uiMaterial.ImmersiveMaterial = new uiMaterial.ImmersiveMaterial({
-    interactive: true,
-    lightEffect: { color: $r('app.color.glow_deep') }
+    interactive: true
   });
   private readonly dockMaterial: uiMaterial.ImmersiveMaterial = new uiMaterial.ImmersiveMaterial({
     style: uiMaterial.ImmersiveStyle.THIN,
-    interactive: true,
-    lightEffect: { color: $r('app.color.glow_deep') }
+    interactive: true
   });
   private readonly tabSpring: curves.ICurve = curves.springMotion(0.30, 0.82);
-  private readonly loweredPhoneBar: CommonModifier = new CommonModifier().offset({ y: 12 });
+  private readonly loweredPhoneBar: CommonModifier = new CommonModifier().offset({ y: 8 });
   private readonly loweredTabletBar: CommonModifier = new CommonModifier().offset({ y: 24 });
   private readonly defaultBar: CommonModifier = new CommonModifier().offset({ y: 0 });
   private animationReduceListening: boolean = false;
@@ -74,15 +72,17 @@ export struct ImmersiveDock {
   }
 
   private bottomDockMargin(): number {
-    // Keep fullscreen tablets and 2in1 windows at their existing position.
-    return deviceInfo.deviceType === 'phone' ||
+    // Phone floating windows have no bottom system bar to absorb the fullscreen adjustment.
+    return (deviceInfo.deviceType === 'phone' && !this.windowState.isFloating) ||
       (deviceInfo.deviceType === 'tablet' && this.windowState.isFloating) ? 4 : 8;
   }
 
   private dockBarModifier(): CommonModifier {
     // Move only the bottom bar; leave page measurements and system insets intact.
     if (this.hideBottomDock()) { return this.defaultBar; }
-    if (deviceInfo.deviceType === 'phone') { return this.loweredPhoneBar; }
+    if (deviceInfo.deviceType === 'phone') {
+      return this.windowState.isFloating ? this.defaultBar : this.loweredPhoneBar;
+    }
     if (deviceInfo.deviceType === 'tablet' && this.windowState.isFloating) { return this.loweredTabletBar; }
     return this.defaultBar;
   }
@@ -189,13 +189,14 @@ export struct ImmersiveDock {
         }.expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
           .tabBar(this.tabStyle($r('app.media.dock_profile'), '我的'))
       }
-      // Phone immersion needs matchParent; keep the tablet and desktop cross-axis sizing.
-      .height(this.windowState.keepSystemTop ? '100%' : LayoutPolicy.matchParent)
+      // The viewport extends under the gesture area; scroll content supplies its own end inset.
+      .height(LayoutPolicy.matchParent)
       .layoutWeight(1)
       .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], this.windowState.keepSystemTop ?
         [LayoutSafeAreaEdge.BOTTOM] : [LayoutSafeAreaEdge.TOP, LayoutSafeAreaEdge.BOTTOM])
       .expandSafeArea([SafeAreaType.SYSTEM])
-      .padding({ top: this.windowState.keepSystemTop ? 0 : this.windowState.topInset, bottom: this.windowState.bottomInset })
+      .padding({ top: this.windowState.keepSystemTop ? 0 : this.windowState.topInset,
+        bottom: this.hideBottomDock() ? 0 : this.windowState.bottomInset })
       // Leave floating width to the native capsule; 100% makes it touch both screen edges.
       .barHeight(this.hideBottomDock() ? 0 : 56)
       .barOverlap(!this.hideBottomDock()).vertical(false)

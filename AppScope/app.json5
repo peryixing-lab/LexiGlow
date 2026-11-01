@@ -2,8 +2,8 @@
   "app": {
     "bundleName": "com.lovexjy.lexiglow",
     "vendor": "example",
-    "versionCode": 1000001,
-    "versionName": "1.0.0",
+    "versionCode": 200612083,
+    "versionName": "1.2.1",
     "buildVersion": "1",
     "icon": "$media:ciying_icon",
     "label": "$string:app_name"

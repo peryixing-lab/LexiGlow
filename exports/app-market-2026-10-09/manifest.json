@@ -1,0 +1,74 @@
+[
+  {
+    "file": "phone/01-home.png",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 1808937
+  },
+  {
+    "file": "phone/02-books.png",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 1972338
+  },
+  {
+    "file": "phone/03-stats.png",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 1833572
+  },
+  {
+    "file": "phone/04-profile.png",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 1807140
+  },
+  {
+    "file": "tablet/01-home.png",
+    "width": 1920,
+    "height": 1280,
+    "bytes": 1785006
+  },
+  {
+    "file": "tablet/02-books.png",
+    "width": 1920,
+    "height": 1280,
+    "bytes": 1810920
+  },
+  {
+    "file": "tablet/03-stats.png",
+    "width": 1920,
+    "height": 1280,
+    "bytes": 1858825
+  },
+  {
+    "file": "tablet/04-profile.png",
+    "width": 1920,
+    "height": 1280,
+    "bytes": 1903144
+  },
+  {
+    "file": "2in1/01-home.png",
+    "width": 1920,
+    "height": 1080,
+    "bytes": 1793177
+  },
+  {
+    "file": "2in1/02-books.png",
+    "width": 1920,
+    "height": 1080,
+    "bytes": 1890787
+  },
+  {
+    "file": "2in1/03-stats.png",
+    "width": 1920,
+    "height": 1080,
+    "bytes": 1861896
+  },
+  {
+    "file": "2in1/04-profile.png",
+    "width": 1920,
+    "height": 1080,
+    "bytes": 1795965
+  }
+]

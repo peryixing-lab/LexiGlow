@@ -2,7 +2,7 @@ import { LearnedDate, LearnedWord } from '../model/AppModels';
 import { LearningService } from '../service/LearningService';
 import { dateKey } from '../utils/TimeUtils';
 import { strengthName } from '../utils/MemoryUtils';
-import { bottomContentOffset } from '../utils/SafeAreaUtils';
+import { AdaptiveWindowState, adaptiveWindowState } from '../utils/AdaptiveWindow';
 import { PAGE_MAX_WIDTH, pageHorizontalPadding, wordListColumnCount } from '../utils/ResponsiveLayout';
 import { deviceInfo } from '@kit.BasicServicesKit';
 
@@ -11,6 +11,7 @@ export struct LearnedWordsPage {
   @Event onOpenWord: (id: number, bookId: string) => void = () => {};
   @Event onChallenge: () => void = () => {};
   @Param topInset: number = 0;
+  @Local windowState: AdaptiveWindowState = adaptiveWindowState();
   @Local pageWidth: number = 0;
   @Local dates: LearnedDate[] = [];
   @Local selectedDate: string = '';
@@ -108,6 +109,8 @@ export struct LearnedWordsPage {
 
   private dateLabel(): string { return this.selectedDate || '日期未记录'; }
 
+  private hasKnownDates(): boolean { return this.dates.some((day: LearnedDate) => day.date.length > 0); }
+
   private selectedCount(): number {
     const day = this.dates.find((item: LearnedDate) => item.date === this.selectedDate);
     return day ? day.count : 0;
@@ -183,9 +186,15 @@ export struct LearnedWordsPage {
             .fontColor($r('app.color.text_primary')).hoverEffect(HoverEffect.Auto).onClick(this.onChallenge)
         }.width('100%')
         Flex({ wrap: FlexWrap.Wrap, alignItems: ItemAlign.Center }) {
-          Button(`${this.dateLabel()}  ▾`, { type: ButtonType.Normal }).height(46).fontSize(15)
-            .backgroundColor($r('app.color.surface')).fontColor($r('app.color.text_primary'))
-            .borderRadius(14).margin({ right: 10 }).hoverEffect(HoverEffect.Auto).onClick(() => { this.pickDate(); })
+          if (this.hasKnownDates()) {
+            Button(`${this.dateLabel()}  ▾`, { type: ButtonType.Normal }).height(46).fontSize(15)
+              .backgroundColor($r('app.color.surface')).fontColor($r('app.color.text_primary'))
+              .borderRadius(14).margin({ right: 10 }).hoverEffect(HoverEffect.Auto).onClick(() => { this.pickDate(); })
+          } else {
+            Text(this.dateLabel()).height(46).fontSize(15).padding({ left: 14, right: 14 })
+              .backgroundColor($r('app.color.surface')).fontColor($r('app.color.text_primary'))
+              .borderRadius(14).margin({ right: 10 })
+          }
           Text(`首次学习 ${this.selectedCount()} 词`).fontSize(13).fontColor($r('app.color.text_secondary'))
             .padding({ top: 8, bottom: 8 })
         }.width('100%')
@@ -237,15 +246,19 @@ export struct LearnedWordsPage {
           }, (item: LearnedWord) => `${item.word.id}`)
         }
       }.lanes(this.columnCount(), 14)
-        .padding({ left: this.pagePadding(), right: this.pagePadding() }).width('100%').height('100%')
+        .padding({ left: this.pagePadding(), right: this.pagePadding() }).width('100%')
+        .height(LayoutPolicy.matchParent)
+        .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
         .constraintSize({ maxWidth: PAGE_MAX_WIDTH }).scrollBar(this.pageWidth >= 600 ? BarState.Auto : BarState.Off)
-        .contentStartOffset(66 + this.topInset).contentEndOffset(bottomContentOffset(this.getUIContext()))
+        .contentStartOffset(66 + this.topInset).contentEndOffset(24 + this.windowState.bottomInset)
         .onReachEnd(() => {
           if (this.ready && this.dates.length > 0) { this.loadWords(false); }
         })
-    }.width('100%').height('100%').alignItems(HorizontalAlign.Center)
-      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-      .backgroundColor($r('app.color.background'))
+    }.width('100%').height(LayoutPolicy.matchParent).alignItems(HorizontalAlign.Center)
+      // Extend the actual list viewport, not only its parent's paint area.
+      .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
+      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP])
+      .background($r('app.color.background'))
       .onAreaChange((_oldArea: Area, area: Area) => {
         this.pageWidth = Number(area.width);
       })

@@ -1,6 +1,16 @@
 /node_modules
 /oh_modules
 /local.properties
+*.p12
+*.p7b
+*.pfx
+*.jks
+*.keystore
+*.cer
+*.pem
+*.key
+*.env
+*.env.*
 /.idea
 **/build
 /.hvigor
@@ -11,3 +21,6 @@
 **/.test
 /.appanalyzer
 .DS_Store
+
+# Local AGC configuration downloaded for this application.
+/entry/agconnect-services.json

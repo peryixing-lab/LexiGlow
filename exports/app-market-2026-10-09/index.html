@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>词萤 · 应用市场宣传图</title>
+  <style>
+    :root { --paper: #f6f2e4; --surface: #fffdf7; --ink: #262d2a; --muted: #797b70; --line: #dedfce; --glow: #f3e59e; --green: #647c60; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; -webkit-font-smoothing: antialiased; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { font: inherit; cursor: pointer; }
+    a { color: inherit; text-decoration: none; }
+    button:focus-visible, a:focus-visible { outline: 3px solid var(--green); outline-offset: 4px; }
+    .shell { max-width: 1440px; margin: auto; padding: 64px 48px 36px; }
+    .intro { position: relative; padding-bottom: 38px; }
+    .eyebrow { display: flex; align-items: center; gap: 10px; margin: 0 0 24px; color: var(--green); font-size: 12px; letter-spacing: .12em; }
+    .light { width: 9px; height: 9px; border-radius: 50%; background: #d2b541; box-shadow: 0 0 0 6px #eee6bd; }
+    h1 { margin: 0; font-size: clamp(27px, 3.2vw, 44px); line-height: 1.25; letter-spacing: -.04em; font-weight: 650; }
+    .tagline { margin: 17px 0 0; color: var(--muted); font-size: 16px; letter-spacing: .02em; }
+    .intro-mark { position: absolute; right: 9px; top: 8px; width: 106px; height: 106px; border: 1px solid #e2dec8; border-radius: 50%; }
+    .intro-mark::before, .intro-mark::after { content: ""; position: absolute; border-radius: 50%; }
+    .intro-mark::before { inset: 20px; border: 1px solid #e2dec8; }
+    .intro-mark::after { width: 14px; height: 14px; background: #e5d484; top: 13px; right: 9px; box-shadow: 0 0 20px #e5d48480; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; padding: 18px 0 28px; border-top: 1px solid var(--line); }
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+    .filter { border: 1px solid transparent; padding: 10px 19px; border-radius: 999px; color: var(--muted); background: transparent; font-size: 14px; transition: background .15s, color .15s; }
+    .filter:hover { background: #eae6d8; }
+    .filter[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+    .toolbar-right { display: flex; align-items: center; gap: 19px; font-size: 12px; color: var(--muted); }
+    .refresh { border: 0; background: transparent; color: var(--muted); padding: 8px 0; }
+    .refresh:hover { color: var(--ink); }
+    .device-group { margin: 0 0 54px; }
+    .device-group[hidden] { display: none; }
+    .group-heading { display: flex; align-items: baseline; gap: 14px; margin-bottom: 20px; }
+    .group-heading h2 { margin: 0; font-size: 22px; line-height: 1.4; font-weight: 600; letter-spacing: -.02em; }
+    .group-meta { color: var(--muted); font-size: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px; }
+    .grid.phone { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
+    .card { min-width: 0; }
+    .image-link { display: block; position: relative; overflow: hidden; border: 1px solid #dddac9; border-radius: 16px; background: #ece9dc; box-shadow: 0 5px 16px #53544207; transition: transform .18s, box-shadow .18s; }
+    .image-link:hover { transform: translateY(-3px); box-shadow: 0 12px 22px #5354420f; }
+    .phone .image-link { aspect-ratio: 9 / 16; }
+    .tablet .image-link { aspect-ratio: 3 / 2; }
+    .convertible .image-link { aspect-ratio: 16 / 9; }
+    .preview-image { display: block; position: relative; z-index: 1; width: 100%; height: 100%; object-fit: contain; }
+    .placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #949588; font-size: 12px; }
+    .placeholder::before { content: ""; width: 34px; height: 46px; border: 1px solid #c2c4b5; border-radius: 7px; transform: rotate(-7deg); background: #f4f1e5; box-shadow: 8px 4px 0 -1px #eeebdf, 8px 4px 0 0 #c2c4b5; }
+    .image-link.ready .placeholder { display: none; }
+    .image-link.failed .preview-image { visibility: hidden; }
+    .card-caption { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 15px 2px 0; }
+    .caption-title { display: flex; align-items: baseline; gap: 9px; min-width: 0; }
+    .number { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .page-name { font-size: 14px; font-weight: 550; }
+    .download { display: inline-flex; align-items: center; gap: 5px; color: var(--green); font-size: 12px; white-space: nowrap; border-bottom: 1px solid transparent; padding-bottom: 2px; }
+    .download:hover { border-color: var(--green); }
+    .download svg { width: 13px; height: 13px; }
+    footer { display: flex; justify-content: space-between; gap: 16px; padding: 25px 0 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; line-height: 1.7; }
+    dialog { width: min(1320px, calc(100vw - 36px)); max-height: calc(100vh - 36px); border: 1px solid #e2e0d3; border-radius: 18px; padding: 0; background: var(--surface); color: var(--ink); box-shadow: 0 20px 80px #00000030; }
+    dialog::backdrop { background: #262d2acc; backdrop-filter: blur(5px); }
+    .viewer-head { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 18px 22px; border-bottom: 1px solid var(--line); }
+    .viewer-title { margin: 0; font-size: 15px; font-weight: 550; }
+    .viewer-actions { display: flex; align-items: center; gap: 18px; }
+    .close { width: 32px; height: 32px; border: 0; background: #efeddf; border-radius: 50%; color: var(--ink); font-size: 22px; line-height: 1; }
+    .viewer-body { display: flex; align-items: center; justify-content: center; padding: 18px; min-height: 200px; background: #eae8dd; }
+    .viewer-body img { display: block; max-width: 100%; max-height: calc(100vh - 154px); width: auto; height: auto; object-fit: contain; }
+    @media (max-width: 1000px) { .shell { padding: 44px 30px 30px; } .grid.phone { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 650px) { .shell { padding: 32px 20px 24px; } .intro { padding-bottom: 28px; } .intro-mark { display: none; } .eyebrow { margin-bottom: 18px; } .tagline { font-size: 14px; } .toolbar { gap: 12px; padding: 15px 0 26px; } .filter { padding: 9px 13px; font-size: 13px; } .toolbar-right { width: 100%; justify-content: space-between; } .grid { grid-template-columns: minmax(0, 1fr); gap: 25px; } .grid.phone { gap: 15px; } .group-heading { gap: 10px; flex-wrap: wrap; margin-bottom: 16px; } .group-heading h2 { font-size: 20px; } .group-meta { font-size: 11px; } .image-link { border-radius: 11px; } .card-caption { flex-wrap: wrap; row-gap: 8px; padding-top: 12px; } .page-name { font-size: 13px; } .download { font-size: 11px; } .device-group { margin-bottom: 40px; } footer { flex-direction: column; gap: 3px; } .viewer-head { padding: 12px 14px; } .viewer-title { font-size: 13px; } .viewer-actions { gap: 12px; } .viewer-body { padding: 8px; } }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="intro">
+      <p class="eyebrow"><span class="light" aria-hidden="true"></span>LEXIGLOW · 2026.10</p>
+      <h1>词萤 · 应用市场宣传图</h1>
+      <p class="tagline">让单词一点一点亮起来</p>
+      <div class="intro-mark" aria-hidden="true"></div>
+    </header>
+    <nav class="toolbar" aria-label="筛选设备宣传图">
+      <div class="filters">
+        <button class="filter" type="button" data-filter="all" aria-pressed="true">全部</button>
+        <button class="filter" type="button" data-filter="phone" aria-pressed="false">手机</button>
+        <button class="filter" type="button" data-filter="tablet" aria-pressed="false">平板</button>
+        <button class="filter" type="button" data-filter="2in1" aria-pressed="false">2in1</button>
+      </div>
+      <div class="toolbar-right"><span id="image-count" aria-live="polite">12 张宣传图</span><button class="refresh" type="button" id="refresh">刷新图片 ↻</button></div>
+    </nav>
+    <div id="gallery"></div>
+    <footer><span>词萤 · LexiGlow</span><span>点击图片查看原图，单张下载可直接保存 PNG。</span></footer>
+  </main>
+  <dialog id="viewer" aria-labelledby="viewer-title">
+    <div class="viewer-head">
+      <h2 class="viewer-title" id="viewer-title">宣传图原图</h2>
+      <div class="viewer-actions"><a class="download" id="viewer-download" download>下载 PNG</a><button class="close" type="button" id="close" aria-label="关闭原图">×</button></div>
+    </div>
+    <div class="viewer-body"><img id="viewer-image" alt=""></div>
+  </dialog>
+  <script>
+    const devices = [
+      { key: 'phone', label: '手机', ratio: '9:16', size: '1080 × 1920', gridClass: 'phone' },
+      { key: 'tablet', label: '平板', ratio: '3:2', size: '1920 × 1280', gridClass: 'tablet' },
+      { key: '2in1', label: '2in1', ratio: '16:9', size: '1920 × 1080', gridClass: 'convertible' }
+    ];
+    const pages = [
+      { file: '01-home.png', label: '首页' },
+      { file: '02-books.png', label: '词库' },
+      { file: '03-stats.png', label: '统计' },
+      { file: '04-profile.png', label: '我的' }
+    ];
+    const arrow = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v8m-3-3 3 3 3-3M3 11v3h10v-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const gallery = document.getElementById('gallery');
+    const viewer = document.getElementById('viewer');
+    const viewerImage = document.getElementById('viewer-image');
+    const viewerDownload = document.getElementById('viewer-download');
+    devices.forEach(device => {
+      const section = document.createElement('section');
+      section.className = 'device-group';
+      section.dataset.device = device.key;
+      section.setAttribute('aria-labelledby', 'heading-' + device.key);
+      section.innerHTML = '<div class="group-heading"><h2 id="heading-' + device.key + '">' + device.label + '</h2><span class="group-meta">' + device.ratio + ' · ' + device.size + ' px · 4 张</span></div><div class="grid ' + device.gridClass + '"></div>';
+      const grid = section.querySelector('.grid');
+      pages.forEach((page, index) => {
+        const path = device.key + '/' + page.file;
+        const title = device.label + ' · ' + page.label;
+        const card = document.createElement('article');
+        card.className = 'card';
+        card.innerHTML = '<a class="image-link" href="' + path + '" target="_blank" rel="noopener" aria-label="查看' + title + '原图"><span class="placeholder">图片正在导出</span><img class="preview-image" src="' + path + '" alt="词萤' + title + '宣传图" loading="lazy" decoding="async"></a><div class="card-caption"><div class="caption-title"><span class="number">0' + (index + 1) + '</span><span class="page-name">' + page.label + '</span></div><a class="download" href="' + path + '" download="词萤-' + device.key + '-' + page.file + '">' + arrow + '下载 PNG</a></div>';
+        const link = card.querySelector('.image-link');
+        const img = card.querySelector('img');
+        img.addEventListener('load', () => { link.classList.add('ready'); link.classList.remove('failed'); });
+        img.addEventListener('error', () => { link.classList.add('failed'); link.classList.remove('ready'); });
+        link.addEventListener('click', event => {
+          if (!link.classList.contains('ready') || typeof viewer.showModal !== 'function') return;
+          event.preventDefault();
+          document.getElementById('viewer-title').textContent = title + ' · ' + device.size + ' px';
+          viewerImage.src = path;
+          viewerImage.alt = '词萤' + title + '宣传图原图';
+          viewerDownload.href = path;
+          viewerDownload.download = '词萤-' + device.key + '-' + page.file;
+          viewer.showModal();
+        });
+        grid.appendChild(card);
+      });
+      gallery.appendChild(section);
+    });
+    document.querySelectorAll('[data-filter]').forEach(button => {
+      button.addEventListener('click', () => {
+        const filter = button.dataset.filter;
+        document.querySelectorAll('[data-filter]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+        document.querySelectorAll('.device-group').forEach(group => { group.hidden = filter !== 'all' && group.dataset.device !== filter; });
+        document.getElementById('image-count').textContent = (filter === 'all' ? '12' : '4') + ' 张宣传图';
+      });
+    });
+    document.getElementById('refresh').addEventListener('click', () => {
+      document.querySelectorAll('.preview-image').forEach(img => {
+        img.closest('.image-link').classList.remove('failed', 'ready');
+        img.src = img.getAttribute('src').split('?')[0] + '?refresh=' + Date.now();
+      });
+    });
+    document.getElementById('close').addEventListener('click', () => viewer.close());
+    viewer.addEventListener('click', event => { if (event.target === viewer) viewer.close(); });
+  </script>
+</body>
+</html>

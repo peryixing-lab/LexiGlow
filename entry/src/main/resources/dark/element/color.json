@@ -63,6 +63,18 @@
     {
       "name": "glow_secondary",
       "value": "#D0CBC1"
+    },
+    {
+      "name": "constellation_surface",
+      "value": "#263027"
+    },
+    {
+      "name": "constellation_border",
+      "value": "#405140"
+    },
+    {
+      "name": "constellation_cta",
+      "value": "#374D3B"
     }
   ]
 }

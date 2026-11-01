@@ -50,6 +50,8 @@ SDK 参数为 `TabsOptions` 的 `barPosition/index/controller`，以及 `TabsAtt
 
 API 26 手机模拟器（1320×2848）修复前浮栏范围为 `[0,2313][1320,2502]`，修复后为 `[106,2538][1214,2727]`，恢复 328vp 胶囊宽度和手势区上方的 8vp 间距；顶部渐进模糊及浅色、深色下的浮栏材质均已截图验证。截图：[浅色滚动](screenshots/phone-dock-fixed-light.png)、[深色滚动](screenshots/phone-dock-fixed-dark.png)。依据：[Tabs 沉浸式 FAQ](https://developer.huawei.com/consumer/cn/doc/doccenter-dev-faq/faqs-arkui-1584)、[悬浮栏宽度规则](https://developer.huawei.com/consumer/cn/doc/doccenter-references/api/ts-container-tabs#floatingtabbarwidth)。
 
+2026-10-09 手机小窗定位修正：窗口状态监听同时覆盖手机与平板。手机处于 `FLOATING` 时取消全屏下移量并采用 8vp 底部间距，避免 Dock 下沿被小窗裁切；手机全屏的下移量由 12vp 调整为 8vp，底部间距仍为 4vp，实现小幅上移。平板与 2in1 的定位、高度、材质及安全区处理保持原值。
+
 ## 底部绘制与顶部沉浸
 
 已在模拟器实际解决滚动正文在 Dock 上方被硬截断的问题，最终结构与官方《如何设置 Tabs 沉浸式》方案三一致，兼顾浮栏锚定与顶部沉浸：

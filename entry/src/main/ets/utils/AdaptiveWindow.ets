@@ -39,7 +39,7 @@ export class AdaptiveWindowController {
     this.mainWindow.on('avoidAreaChange', this.avoidListener);
     this.mainWindow.on('windowSizeChange', this.sizeListener);
     this.listening = true;
-    if (deviceInfo.deviceType === 'tablet') {
+    if (deviceInfo.deviceType === 'phone' || deviceInfo.deviceType === 'tablet') {
       try {
         this.windowStatusListener(this.mainWindow.getWindowStatus());
       } catch {}
@@ -64,8 +64,10 @@ export class AdaptiveWindowController {
 
   stop(): void {
     if (!this.listening) { return; }
-    this.mainWindow.off('avoidAreaChange', this.avoidListener);
-    this.mainWindow.off('windowSizeChange', this.sizeListener);
+    try {
+      this.mainWindow.off('avoidAreaChange', this.avoidListener);
+      this.mainWindow.off('windowSizeChange', this.sizeListener);
+    } catch {}
     if (this.windowStatusListening) {
       try {
         this.mainWindow.off('windowStatusDidChange', this.windowStatusListener);

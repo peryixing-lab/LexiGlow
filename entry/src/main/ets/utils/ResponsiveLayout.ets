@@ -1,5 +1,14 @@
 /** Layout dimensions are viewport vp, never physical display pixels. */
 export const PAGE_MAX_WIDTH: number = 1600;
+export const DASHBOARD_MAX_WIDTH: number = PAGE_MAX_WIDTH;
+
+export function primaryPageMaxWidth(_index: number): number {
+  return DASHBOARD_MAX_WIDTH;
+}
+
+export function dashboardUsesColumns(contentWidth: number): boolean {
+  return contentWidth >= 720;
+}
 
 /** Large-device primary navigation moves to the title row when it has enough room. */
 export function usesTopNavigation(windowWidth: number, deviceType: string): boolean {

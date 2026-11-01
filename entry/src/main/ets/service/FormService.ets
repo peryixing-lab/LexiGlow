@@ -6,6 +6,7 @@ import { AppSnapshot } from '../model/AppModels';
 export class DailyFormData {
   word: string = '每天一点光';
   wordId: number = 0;
+  phonetic: string = '';
   meaning: string = '打开词萤，点亮第一个单词';
   progress: string = '开始学习';
   newDone: number = 0;
@@ -71,6 +72,7 @@ export class FormService {
     const data = new DailyFormData();
     data.word = snapshot.dailyWord.word || '每天一点光';
     data.wordId = snapshot.dailyWord.id;
+    data.phonetic = snapshot.dailyWord.phonetic;
     data.meaning = snapshot.dailyWord.meaning || '打开词萤，点亮第一个单词';
     data.newDone = snapshot.plan.newDone;
     data.newTarget = snapshot.plan.newTarget;
