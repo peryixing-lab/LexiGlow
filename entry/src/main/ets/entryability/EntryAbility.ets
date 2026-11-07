@@ -6,7 +6,7 @@ import { AudioFlowService } from '../service/AudioFlowService';
 import { SharedWordService } from '../service/SharedWordService';
 import { LiveStudyService } from '../service/LiveStudyService';
 import { AdaptiveWindowController } from '../utils/AdaptiveWindow';
-import { resolveLaunchRoute } from '../utils/LaunchRouteUtils';
+import { parseLaunchUri, resolveLaunchRoute } from '../utils/LaunchRouteUtils';
 
 export default class EntryAbility extends UIAbility {
   private mainWindow: window.Window | undefined = undefined;
@@ -36,10 +36,22 @@ export default class EntryAbility extends UIAbility {
       AppStorage.setOrCreate('launchRoute', 'shared');
       this.context.eventHub.emit('openRoute', 'shared', 0);
     }).catch(() => {});
+    const rawUri = typeof want.uri === 'string' ? want.uri : '';
     const parameterRoute = typeof want.parameters?.route === 'string' ? want.parameters.route as string : '';
-    const route = resolveLaunchRoute(typeof want.uri === 'string' ? want.uri : '', parameterRoute);
-    const wordId = route === 'todayPlan' ? 0 : Number(want.parameters?.wordId || 0);
+    const route = resolveLaunchRoute(rawUri, parameterRoute);
+    const parsedUri = rawUri.length > 0 && typeof parseLaunchUri === 'function' ? parseLaunchUri(rawUri) : undefined;
+    const wordId = route === 'todayPlan' ? 0 : (parsedUri && parsedUri.wordId > 0 ? parsedUri.wordId : Number(want.parameters?.wordId || 0));
     if (!route || route === 'shared') { return; }
+    if (parsedUri && parsedUri.spelling) {
+      AppStorage.setOrCreate('launchSpelling', parsedUri.spelling);
+    }
+    if (parsedUri && parsedUri.articleId !== 0) {
+      AppStorage.setOrCreate('launchArticleId', parsedUri.articleId);
+    }
+    if (route === 'sharedArticle' && typeof want.parameters?.lexiglowSharedArticle === 'string') {
+      AppStorage.setOrCreate('lexiglowSharedArticleTitle', String(want.parameters?.lexiglowSharedTitle || '知萤联动笔记'));
+      AppStorage.setOrCreate('lexiglowSharedArticleBody', want.parameters.lexiglowSharedArticle as string);
+    }
     AppStorage.setOrCreate('launchRoute', route);
     AppStorage.setOrCreate('launchWordId', wordId);
     if (notify) { this.context.eventHub.emit('openRoute', route, wordId); }

@@ -1,7 +1,7 @@
 import { common } from '@kit.AbilityKit';
 import { relationalStore } from '@kit.ArkData';
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 const SCHEMA: string[] = [
   'CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)',
   'CREATE TABLE IF NOT EXISTS word (id INTEGER PRIMARY KEY AUTOINCREMENT, word TEXT NOT NULL UNIQUE COLLATE NOCASE, phonetic TEXT NOT NULL, meaning TEXT NOT NULL, example TEXT NOT NULL, translation TEXT NOT NULL)',
@@ -44,6 +44,15 @@ const SCHEMA_V5: string[] = [
   'CREATE TABLE IF NOT EXISTS sentence_memory (id TEXT PRIMARY KEY, word_id INTEGER NOT NULL REFERENCES word(id), article_id INTEGER NOT NULL, article_title TEXT NOT NULL, paragraph_key TEXT NOT NULL, sentence TEXT NOT NULL, note TEXT NOT NULL, created_at INTEGER NOT NULL, UNIQUE(word_id,article_id,paragraph_key,sentence))',
   'CREATE INDEX IF NOT EXISTS idx_sentence_word ON sentence_memory(word_id,created_at DESC)',
   'CREATE TABLE IF NOT EXISTS reading_progress (article_id INTEGER PRIMARY KEY, paragraph_index INTEGER NOT NULL, completed INTEGER NOT NULL, answers TEXT NOT NULL, updated_at INTEGER NOT NULL)'
+];
+
+const SCHEMA_V6: string[] = [
+  "ALTER TABLE sentence_memory ADD COLUMN target_text TEXT NOT NULL DEFAULT ''",
+  'ALTER TABLE sentence_memory ADD COLUMN target_start INTEGER NOT NULL DEFAULT -1',
+  'ALTER TABLE sentence_memory ADD COLUMN recall_enabled INTEGER NOT NULL DEFAULT 1',
+  'CREATE TABLE IF NOT EXISTS sentence_recall_attempt (id TEXT PRIMARY KEY, sentence_id TEXT NOT NULL REFERENCES sentence_memory(id) ON DELETE CASCADE, correct INTEGER NOT NULL, hinted INTEGER NOT NULL, duration_ms INTEGER NOT NULL, recorded_at INTEGER NOT NULL)',
+  'CREATE INDEX IF NOT EXISTS idx_sentence_recall_time ON sentence_recall_attempt(sentence_id,recorded_at DESC)',
+  'CREATE TABLE IF NOT EXISTS pending_word (id TEXT PRIMARY KEY, spelling TEXT NOT NULL COLLATE NOCASE, sentence TEXT NOT NULL, article_id INTEGER NOT NULL, article_title TEXT NOT NULL, paragraph_key TEXT NOT NULL, target_text TEXT NOT NULL, target_start INTEGER NOT NULL, created_at INTEGER NOT NULL, UNIQUE(spelling,article_id,paragraph_key,sentence))'
 ];
 
 /** All reads and writes inside a transaction use its connection, including reads after batchInsert. */
@@ -109,6 +118,9 @@ export class DatabaseManager {
         }
         if (previousVersion < 5) {
           for (const statement of SCHEMA_V5) { await store.executeSql(statement); }
+        }
+        if (previousVersion < 6) {
+          for (const statement of SCHEMA_V6) { await store.executeSql(statement); }
         }
         await store.executeSql(`PRAGMA user_version = ${SCHEMA_VERSION}`);
       });

@@ -1,8 +1,10 @@
 import { relationalStore } from '@kit.ArkData';
-import { PracticeAttempt, SentenceMemory, ReadingProgress } from '../model/ExperienceModels';
+import { PracticeAttempt, SentenceMemory, ReadingProgress, SentenceRecallAttempt } from '../model/ExperienceModels';
 import { Article } from '../model/ArticleModels';
 import { DataExport } from '../model/AppModels';
 import { DatabaseManager, DatabaseTransaction } from './DatabaseManager';
+import { hasSentenceTarget } from '../utils/SentenceRecallUtils';
+import { PendingWordService } from '../service/PendingWordService';
 
 export class ExperienceRepository {
   private database: DatabaseManager;
@@ -47,7 +49,9 @@ export class ExperienceRepository {
     try { while (rows.goToNextRow()) {
       const item = new SentenceMemory(); item.id = rows.getString(0); item.wordId = rows.getLong(1);
       item.articleId = rows.getLong(2); item.articleTitle = rows.getString(3); item.paragraphKey = rows.getString(4);
-      item.sentence = rows.getString(5); item.note = rows.getString(6); item.createdAt = rows.getLong(7); result.push(item);
+      item.sentence = rows.getString(5); item.note = rows.getString(6); item.createdAt = rows.getLong(7);
+      item.targetText = rows.getString(8); item.targetStart = rows.getLong(9); item.recallEnabled = rows.getLong(10) === 1;
+      result.push(item);
     } } finally { rows.close(); }
     return result;
   }
@@ -56,18 +60,25 @@ export class ExperienceRepository {
     if (!item.id || item.wordId <= 0 || !item.sentence.trim() || item.sentence.length > 2000 || item.note.length > 500) {
       throw new Error('原句不能为空，备注最多 500 字');
     }
+    if ((item.targetText || item.targetStart !== -1) && !hasSentenceTarget(item)) { throw new Error('请重新确认原句中要回忆的词'); }
     await this.database.transaction(async (store: DatabaseTransaction) => {
       if (item.articleId > 0) {
         const source = await store.querySql('SELECT id FROM article WHERE id=?', [item.articleId]);
         try { if (!source.goToFirstRow()) { item.paragraphKey += '@deleted:' + item.articleId; item.articleId = 0; } }
         finally { source.close(); }
       }
-      const existing = await store.querySql('SELECT id FROM sentence_memory WHERE word_id=? AND article_id=? AND paragraph_key=? AND sentence=?',
+      const existing = await store.querySql('SELECT id,target_text,target_start FROM sentence_memory WHERE word_id=? AND article_id=? AND paragraph_key=? AND sentence=?',
         [item.wordId, item.articleId, item.paragraphKey, item.sentence]);
       let existingId = '';
-      try { if (existing.goToFirstRow()) { existingId = existing.getString(0); } } finally { existing.close(); }
+      let targetChanged = false;
+      try { if (existing.goToFirstRow()) {
+        existingId = existing.getString(0); targetChanged = existing.getString(1) !== item.targetText || existing.getLong(2) !== item.targetStart;
+      } } finally { existing.close(); }
       if (existingId) {
-        await store.executeSql('UPDATE sentence_memory SET note=? WHERE id=?', [item.note.trim(), existingId]); return;
+        await store.executeSql('UPDATE sentence_memory SET note=?,target_text=?,target_start=?,recall_enabled=? WHERE id=?',
+          [item.note.trim(), item.targetText, item.targetStart, item.recallEnabled ? 1 : 0, existingId]);
+        if (targetChanged) { await store.executeSql('DELETE FROM sentence_recall_attempt WHERE sentence_id=?', [existingId]); }
+        item.id = existingId; return;
       }
       const count = await store.querySql('SELECT COUNT(*) FROM sentence_memory WHERE word_id=?', [item.wordId]);
       try { if (count.goToFirstRow() && count.getLong(0) >= 100) { throw new Error('这个词已收藏 100 条原句，请先整理后再保存'); } }
@@ -75,13 +86,47 @@ export class ExperienceRepository {
       const total = await store.querySql('SELECT COUNT(*) FROM sentence_memory');
       try { if (total.goToFirstRow() && total.getLong(0) >= 5000) { throw new Error('已收藏 5000 条原句，请先整理后再保存'); } }
       finally { total.close(); }
-      await store.executeSql('INSERT INTO sentence_memory(id,word_id,article_id,article_title,paragraph_key,sentence,note,created_at) VALUES(?,?,?,?,?,?,?,?)',
-        [item.id, item.wordId, item.articleId, item.articleTitle, item.paragraphKey, item.sentence, item.note.trim(), item.createdAt]);
+      await store.executeSql('INSERT INTO sentence_memory(id,word_id,article_id,article_title,paragraph_key,sentence,note,created_at,target_text,target_start,recall_enabled) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+        [item.id, item.wordId, item.articleId, item.articleTitle, item.paragraphKey, item.sentence, item.note.trim(), item.createdAt,
+          item.targetText, item.targetStart, item.recallEnabled ? 1 : 0]);
     });
   }
 
   async removeSentence(id: string): Promise<void> {
     await this.database.transaction(async (store: DatabaseTransaction) => { await store.executeSql('DELETE FROM sentence_memory WHERE id=?', [id]); });
+  }
+
+  async recallAttempts(sentenceId: string = ''): Promise<SentenceRecallAttempt[]> {
+    const rows = await this.database.getStore().querySql(sentenceId ?
+      'SELECT * FROM sentence_recall_attempt WHERE sentence_id=? ORDER BY recorded_at DESC,id DESC LIMIT 100' :
+      'SELECT * FROM sentence_recall_attempt ORDER BY recorded_at DESC,id DESC LIMIT 300000', sentenceId ? [sentenceId] : []);
+    return ExperienceRepository.readRecallAttempts(rows);
+  }
+
+  private static readRecallAttempts(rows: relationalStore.ResultSet): SentenceRecallAttempt[] {
+    const result: SentenceRecallAttempt[] = [];
+    try { while (rows.goToNextRow()) {
+      const item = new SentenceRecallAttempt(); item.id = rows.getString(0); item.sentenceId = rows.getString(1);
+      item.correct = rows.getLong(2) === 1; item.hinted = rows.getLong(3) === 1;
+      item.durationMs = rows.getLong(4); item.recordedAt = rows.getLong(5); result.push(item);
+    } } finally { rows.close(); }
+    return result;
+  }
+
+  async saveRecallAttempt(attempt: SentenceRecallAttempt, targetText: string = '', targetStart: number = -1): Promise<void> {
+    if (!attempt.id || !attempt.sentenceId || !Number.isFinite(attempt.durationMs) || attempt.durationMs < 0 ||
+      !Number.isFinite(attempt.recordedAt) || attempt.recordedAt <= 0) { throw new Error('原句回忆记录不完整'); }
+    await this.database.transaction(async (store: DatabaseTransaction) => {
+      const source = await store.querySql('SELECT * FROM sentence_memory WHERE id=?', [attempt.sentenceId]);
+      const memories = ExperienceRepository.readSentences(source);
+      if (memories.length !== 1 || !hasSentenceTarget(memories[0])) { throw new Error('原句已删除或目标词已改变，请返回后重新选择'); }
+      if (targetText && (memories[0].targetText !== targetText || memories[0].targetStart !== targetStart)) {
+        throw new Error('回忆目标已改变，请返回后重新选择原句');
+      }
+      await store.executeSql('INSERT OR IGNORE INTO sentence_recall_attempt(id,sentence_id,correct,hinted,duration_ms,recorded_at) VALUES(?,?,?,?,?,?)',
+        [attempt.id, attempt.sentenceId, attempt.correct ? 1 : 0, attempt.hinted ? 1 : 0,
+          Math.min(3600000, Math.floor(attempt.durationMs)), attempt.recordedAt]);
+    });
   }
 
   async reading(articleId: number): Promise<ReadingProgress> {
@@ -114,6 +159,7 @@ export class ExperienceRepository {
     await this.database.transaction(async (store: DatabaseTransaction) => {
       backup.practiceAttempts = ExperienceRepository.readAttempts(await store.querySql('SELECT * FROM practice_attempt ORDER BY recorded_at DESC,id DESC'));
       backup.sentences = ExperienceRepository.readSentences(await store.querySql('SELECT * FROM sentence_memory ORDER BY created_at DESC'));
+      backup.sentenceRecallAttempts = ExperienceRepository.readRecallAttempts(await store.querySql('SELECT * FROM sentence_recall_attempt ORDER BY recorded_at DESC,id DESC'));
       const articles = await store.querySql('SELECT id,title,body,created_at FROM article ORDER BY id');
       try { while (articles.goToNextRow()) {
         const article = new Article(); article.id = articles.getLong(0); article.title = articles.getString(1);
@@ -126,10 +172,12 @@ export class ExperienceRepository {
         progress.completed = readings.getLong(2) === 1; progress.answers = JSON.parse(readings.getString(3)) as number[];
         progress.updatedAt = readings.getLong(4); backup.readingProgress.push(progress);
       } } finally { readings.close(); }
+      await PendingWordService.exportInside(store, backup);
     });
   }
 
   static async restore(store: DatabaseTransaction, backup: DataExport, idMap: Map<number, number>): Promise<void> {
+    await store.executeSql('DELETE FROM sentence_recall_attempt');
     await store.executeSql('DELETE FROM practice_attempt');
     for (const item of backup.practiceAttempts) {
       const wordId = idMap.get(item.wordId); if (!wordId) { continue; }
@@ -145,12 +193,20 @@ export class ExperienceRepository {
     }
     for (const item of backup.sentences) {
       const wordId = idMap.get(item.wordId); if (!wordId) { continue; }
-      await store.executeSql('INSERT INTO sentence_memory VALUES(?,?,?,?,?,?,?,?)',
-        [item.id, wordId, item.articleId, item.articleTitle, item.paragraphKey, item.sentence, item.note, item.createdAt]);
+      await store.executeSql('INSERT INTO sentence_memory(id,word_id,article_id,article_title,paragraph_key,sentence,note,created_at,target_text,target_start,recall_enabled) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+        [item.id, wordId, item.articleId, item.articleTitle, item.paragraphKey, item.sentence, item.note, item.createdAt,
+          item.targetText || '', item.targetStart === undefined ? -1 : item.targetStart, item.recallEnabled === false ? 0 : 1]);
     }
     for (const item of backup.readingProgress) {
       await store.executeSql('INSERT INTO reading_progress VALUES(?,?,?,?,?)',
         [item.articleId, item.paragraphIndex, item.completed ? 1 : 0, JSON.stringify(item.answers), item.updatedAt]);
     }
+    if (backup.version >= 5) {
+      for (const attempt of backup.sentenceRecallAttempts) {
+        await store.executeSql('INSERT INTO sentence_recall_attempt(id,sentence_id,correct,hinted,duration_ms,recorded_at) VALUES(?,?,?,?,?,?)',
+          [attempt.id, attempt.sentenceId, attempt.correct ? 1 : 0, attempt.hinted ? 1 : 0, attempt.durationMs, attempt.recordedAt]);
+      }
+    }
+    await PendingWordService.restoreInside(store, backup);
   }
 }

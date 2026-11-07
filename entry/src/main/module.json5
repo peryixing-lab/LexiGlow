@@ -40,7 +40,13 @@
           {
             "entities": ["entity.system.browsable"],
             "actions": ["ohos.want.action.viewData"],
-            "uris": [{ "scheme": "lexiglow", "host": "study", "path": "plan" }]
+            "uris": [
+              { "scheme": "lexiglow", "host": "study", "path": "plan" },
+              { "scheme": "lexiglow", "host": "study", "path": "mistakes" },
+              { "scheme": "lexiglow", "host": "study", "path": "sentences" },
+              { "scheme": "lexiglow", "host": "word" },
+              { "scheme": "lexiglow", "host": "article" }
+            ]
           }
         ]
       }
@@ -63,7 +69,12 @@
         "icon": "$media:ciying_icon",
         "skills": [{
           "actions": ["ohos.want.action.sendData"],
-          "uris": [{ "scheme": "file", "utd": "general.plain-text", "maxFileSupported": 1 }]
+          "uris": [
+            { "scheme": "file", "utd": "general.plain-text", "maxFileSupported": 1 },
+            { "scheme": "file", "utd": "general.markdown", "maxFileSupported": 1 },
+            { "scheme": "file", "utd": "general.text", "maxFileSupported": 1 },
+            { "scheme": "content", "utd": "general.markdown", "maxFileSupported": 1 }
+          ]
         }]
       },
       {

@@ -10,6 +10,7 @@ export struct SharedWordsPage {
   @Local words: Word[] = [];
   @Local missing: string[] = [];
   @Local selected: number[] = [];
+  @Local candidateLabels: Map<number, string> = new Map<number, string>();
   @Local loading: boolean = true;
   @Local saving: boolean = false;
   @Local error: string = '';
@@ -23,16 +24,26 @@ export struct SharedWordsPage {
     this.error = '';
     const words: Word[] = [];
     const missing: string[] = [];
+    const selected: number[] = [];
+    const labels = new Map<number, string>();
     try {
       for (const headword of SharedWordService.wordsFromText(this.text)) {
-        const word = await LearningService.getInstance().findWordBySpelling(headword);
+        const candidates = await LearningService.getInstance().lookupCandidates(headword);
         if (!this.active) { return; }
-        if (word) { words.push(word); }
-        else { missing.push(headword); }
+        if (candidates.length === 0) { missing.push(headword); }
+        for (const word of candidates) {
+          if (!words.some((existing: Word): boolean => existing.id === word.id)) { words.push(word); }
+          const previous = labels.get(word.id) || '';
+          const label = candidates.length > 1 ? `原文 ${headword} · 存在多个候选，请选择` :
+            (word.word !== headword ? `原文 ${headword} → ${word.word}` : '');
+          if (label) { labels.set(word.id, previous ? `${previous}；${label}` : label); }
+          if (candidates.length === 1 && selected.indexOf(word.id) < 0) { selected.push(word.id); }
+        }
       }
       this.words = words;
       this.missing = missing;
-      this.selected = words.map((word: Word) => word.id);
+      this.selected = selected;
+      this.candidateLabels = labels;
     } catch { if (this.active) { this.error = '本地匹配暂时没能完成，请重试。'; } }
     finally { if (this.active) { this.loading = false; } }
   }
@@ -65,7 +76,7 @@ export struct SharedWordsPage {
     Scroll() {
       Column({ space: 18 }) {
         Text('确认要收下的单词').fontSize(26).fontColor($r('app.color.text_primary')).width('100%')
-        Text('最多匹配 20 个词。选中后加入生词本，后续学习由你安排。').fontSize(14).lineHeight(24)
+        Text('最多识别 20 个原文词形。变形会尝试还原；有多个候选时请按原文选择。选中后加入生词本。').fontSize(14).lineHeight(24)
           .fontColor($r('app.color.text_secondary')).width('100%')
         if (this.loading) { LoadingProgress().width(36).height(36) }
         if (this.error) {
@@ -79,6 +90,10 @@ export struct SharedWordsPage {
               .onChange(() => { this.toggle(word.id); }).accessibilityText(`收下 ${word.word}`)
             Column({ space: 7 }) {
               Text(`${word.word}  ${word.phonetic}`).fontSize(22).fontColor($r('app.color.text_primary'))
+              if (this.candidateLabels.has(word.id)) {
+                Text(this.candidateLabels.get(word.id) || '').fontSize(12).lineHeight(20)
+                  .fontColor($r('app.color.text_secondary'))
+              }
               Text(word.meaning).fontSize(15).lineHeight(24).fontColor($r('app.color.text_secondary'))
             }.layoutWeight(1).alignItems(HorizontalAlign.Start)
           }.padding(20).width('100%').backgroundColor($r('app.color.surface')).borderRadius(22)

@@ -1,5 +1,6 @@
-import { PracticeAttempt, SentenceMemory, ReadingProgress } from '../model/ExperienceModels';
+import { PracticeAttempt, SentenceMemory, SentenceRecallAttempt, ReadingProgress } from '../model/ExperienceModels';
 import { Article } from '../model/ArticleModels';
+import { PendingWordDraft } from '../model/PendingWordModels';
 import { curatedArticles } from '../data/CuratedArticles';
 import { articleParagraphs } from '../utils/ArticleTokenizer';
 import { DataExport, DictionaryBook, Word, WordProgress, ReviewRecord, DailyPlan, DaySummary,
@@ -20,7 +21,7 @@ export class BackupService {
     if (input.format !== 'ciying-learning-backup') {
       throw new Error('这不是词萤学习备份；词书文件请使用「导入自定义词书」');
     }
-    if (![1, 2, 3, 4].includes(input.version)) { throw new Error('不支持此备份版本，请更新词萤后再恢复'); }
+    if (![1, 2, 3, 4, 5].includes(input.version)) { throw new Error('不支持此备份版本，请更新词萤后再恢复'); }
     const output = new DataExport();
     output.version = input.version;
     output.compact = input.version >= 3 && input.compact === true;
@@ -245,9 +246,64 @@ export class BackupService {
         next.sentence = BackupService.text(value.sentence, '收藏原句', 2000, true);
         next.note = BackupService.text(value.note, '原句备注', 500);
         next.createdAt = BackupService.integer(value.createdAt, '原句日期', 0, 8640000000000000);
+        if (input.version >= 5) {
+          next.targetText = BackupService.text(value.targetText, '原句目标词形', 80);
+          next.targetStart = BackupService.integer(value.targetStart, '原句目标位置', -1, next.sentence.length);
+          next.recallEnabled = BackupService.boolean(value.recallEnabled, '原句回忆开关');
+          if (next.targetStart >= 0 && (!/^[A-Za-z]+(?:['’][A-Za-z]+)*$/.test(next.targetText) ||
+            next.sentence.slice(next.targetStart, next.targetStart + next.targetText.length) !== next.targetText ||
+            /[A-Za-z'’]/.test(next.sentence.charAt(next.targetStart - 1)) ||
+            /[A-Za-z'’]/.test(next.sentence.charAt(next.targetStart + next.targetText.length)))) {
+            throw new Error('原句目标词形与位置不一致');
+          }
+          if (next.targetStart === -1 && next.targetText !== '') { throw new Error('原句目标词缺少确认位置'); }
+        }
         BackupService.unique(sentenceKeys, JSON.stringify([next.wordId, next.articleId, next.paragraphKey, next.sentence]), '原句来源');
         return next;
       });
+      if (input.version >= 5) {
+        const recallIds = new Set<string>();
+        output.sentenceRecallAttempts = BackupService.array(input.sentenceRecallAttempts, '原句回忆记录', 100000)
+          .map((value: SentenceRecallAttempt): SentenceRecallAttempt => {
+            BackupService.object(value, '原句回忆记录');
+            const next = new SentenceRecallAttempt();
+            next.id = BackupService.text(value.id, '原句回忆编号', 160, true);
+            BackupService.unique(recallIds, next.id, '原句回忆记录');
+            next.sentenceId = BackupService.text(value.sentenceId, '回忆原句编号', 160, true);
+            if (!sentenceIds.has(next.sentenceId)) { throw new Error('回忆记录对应的原句不存在'); }
+            next.correct = BackupService.boolean(value.correct, '原句回忆结果');
+            next.hinted = BackupService.boolean(value.hinted, '原句提示记录');
+            next.durationMs = BackupService.integer(value.durationMs, '原句回忆耗时', 0, 3600000);
+            next.recordedAt = BackupService.integer(value.recordedAt, '原句回忆日期', 0, 8640000000000000);
+            return next;
+          });
+        const pendingIds = new Set<string>(); const pendingKeys = new Set<string>();
+        output.pendingWords = BackupService.array(input.pendingWords, '待补充词', 500)
+          .map((value: PendingWordDraft): PendingWordDraft => {
+            BackupService.object(value, '待补充词');
+            const next = new PendingWordDraft();
+            next.id = BackupService.text(value.id, '待补充编号', 140, true);
+            BackupService.unique(pendingIds, next.id, '待补充词');
+            next.spelling = BackupService.text(value.spelling, '待补充词头', 80, true).toLowerCase();
+            next.sentence = BackupService.text(value.sentence, '待补充原句', 2000, true);
+            next.articleId = BackupService.integer(value.articleId, '待补充来源', -1000000);
+            if (next.articleId !== 0 && !articleMap.has(next.articleId)) { throw new Error('待补充词来源不存在'); }
+            next.articleTitle = BackupService.text(value.articleTitle, '待补充标题', 80, true);
+            next.paragraphKey = BackupService.text(value.paragraphKey, '待补充段落', 80, true);
+            next.targetText = BackupService.text(value.targetText, '待补充词形', 80, true);
+            next.targetStart = BackupService.integer(value.targetStart, '待补充位置', 0, next.sentence.length);
+            next.createdAt = BackupService.integer(value.createdAt, '待补充日期', 0, 8640000000000000);
+            if (!/^[a-z]+(?:['’][a-z]+)*$/i.test(next.spelling) ||
+              next.targetText.toLowerCase().replace(/’/g, "'") !== next.spelling.replace(/’/g, "'") ||
+              next.sentence.slice(next.targetStart, next.targetStart + next.targetText.length) !== next.targetText ||
+              /[A-Za-z'’]/.test(next.sentence.charAt(next.targetStart - 1)) ||
+              /[A-Za-z'’]/.test(next.sentence.charAt(next.targetStart + next.targetText.length))) {
+              throw new Error('待补充词形与原句位置不一致');
+            }
+            BackupService.unique(pendingKeys, JSON.stringify([next.spelling, next.articleId, next.paragraphKey, next.sentence]), '待补充词来源');
+            return next;
+          });
+      }
       const readingIds = new Set<number>();
       output.readingProgress = BackupService.array(input.readingProgress, '阅读进度', 1000).map((value: ReadingProgress): ReadingProgress => {
         BackupService.object(value, '阅读进度');

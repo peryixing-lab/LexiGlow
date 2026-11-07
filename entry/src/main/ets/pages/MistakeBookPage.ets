@@ -1,5 +1,7 @@
+import { common } from '@kit.AbilityKit';
 import { MistakeWord } from '../model/AppModels';
 import { LearningService } from '../service/LearningService';
+import { LexiNoteBridgeService } from '../service/LexiNoteBridgeService';
 import { dateKey } from '../utils/TimeUtils';
 
 @ComponentV2
@@ -9,6 +11,7 @@ export struct MistakeBookPage {
   @Param visible: boolean = true;
   @Local words: MistakeWord[] = [];
   @Local loading: boolean = false;
+  @Local sharing: boolean = false;
   @Local hasMore: boolean = true;
   @Local error: string = '';
   private generation: number = 0;
@@ -29,6 +32,20 @@ export struct MistakeBookPage {
       if (generation === this.generation) { this.error = (error as Error).message || '错题暂未载入'; }
     } finally { if (generation === this.generation) { this.loading = false; } }
   }
+  private async shareMistakes(): Promise<void> {
+    if (this.sharing || this.words.length === 0) { return; }
+    this.sharing = true;
+    try {
+      const ctx = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      const today = dateKey();
+      const md = LexiNoteBridgeService.buildMistakeBookMarkdown(this.words, today);
+      await LexiNoteBridgeService.shareMarkdownToLexiNote(ctx, `词萤错题复盘_${today}`, md);
+    } catch {
+      this.getUIContext().getPromptAction().showToast({ message: '暂时无法打开系统分享面板' });
+    } finally {
+      this.sharing = false;
+    }
+  }
   build() {
     Column({ space: 16 }) {
       Text('把容易忘的，再记牢一些。').fontSize(24).fontWeight(FontWeight.Medium)
@@ -38,6 +55,11 @@ export struct MistakeBookPage {
       Button('开始错题练习 · 最多 20 词').height(48).width('100%')
         .backgroundColor($r('app.color.brand_ink')).fontColor($r('app.color.inverse_text'))
         .enabled(!this.loading && this.words.length > 0).onClick(() => { this.onPractice(); })
+      if (this.words.length > 0) {
+        Button(this.sharing ? '正在生成复盘笔记…' : '导出错题复盘到知萤笔记').height(46).width('100%')
+          .backgroundColor($r('app.color.soft_surface')).fontColor($r('app.color.text_primary'))
+          .enabled(!this.loading && !this.sharing).onClick(() => { this.shareMistakes(); })
+      }
       if (this.error) {
         Text(this.error).fontColor($r('app.color.text_secondary'))
         Button('重新载入').onClick(() => { this.load(true); })

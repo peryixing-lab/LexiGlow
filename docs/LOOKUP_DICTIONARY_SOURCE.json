@@ -1,0 +1,24 @@
+{
+  "lookupVersion": 1,
+  "sourceRepository": "https://github.com/skywind3000/ECDICT",
+  "sourceCommit": "bc015ed2e24a7abef49fc6dbbb7fe32c1dadaf8b",
+  "sourceUrl": "https://raw.githubusercontent.com/skywind3000/ECDICT/bc015ed2e24a7abef49fc6dbbb7fe32c1dadaf8b/ecdict.csv",
+  "sourceSha256": "1a6947e04785db63613a92e14903cdae7954f7e84860b10e68e5c7cbb3f9c3cf",
+  "sourceLicense": "MIT",
+  "sourceLicenseFile": "entry/src/main/resources/rawfile/licenses/ECDICT-MIT.txt",
+  "entries": 15255,
+  "catalogHeads": 10689,
+  "articleCount": 18,
+  "articleTokenTypes": 770,
+  "articleTokensWithoutExactOrExchangeMatch": [
+    "alice's",
+    "else's",
+    "leo's",
+    "nora's"
+  ],
+  "articleTokensWithoutQueryCandidate": [],
+  "resourceBytes": 2183054,
+  "resourceSha256": "1731feab18ca43830cca7ddf6b8fcbc5a152c88a011407470d6714e587807234",
+  "selection": "All existing learning-book heads, frequency rank <=10000 in either BNC/contemporary field, Oxford flag, curated article tokens and their known lemmas. No book membership is added.",
+  "transform": "Lowercase identities; preserve all nonempty Chinese definition lines and exchange fields; exclude non-Chinese, invalid or overlong heads. Query-only proper names remain explicit unmatched words, not invented definitions."
+}

@@ -6,7 +6,10 @@ import { DatabaseManager, DatabaseTransaction } from './DatabaseManager';
 /** Shares the learning connection and mutation queue; the 20-article limit is checked inside the write transaction. */
 export class ArticleRepository {
   private database: DatabaseManager;
-  constructor(database: DatabaseManager) { this.database = database; }
+  private candidates: (spelling: string) => string[];
+  constructor(database: DatabaseManager, candidates: (spelling: string) => string[] = articleWordCandidates) {
+    this.database = database; this.candidates = candidates;
+  }
 
   async list(): Promise<ArticleSummary[]> {
     const rows = await this.database.getStore().querySql(
@@ -57,6 +60,7 @@ export class ArticleRepository {
     if (!Number.isInteger(id) || id <= 0) { throw new Error('文章编号无效'); }
     await this.database.transaction(async (store: DatabaseTransaction) => {
       await store.executeSql('UPDATE sentence_memory SET article_id=0, paragraph_key=paragraph_key || ? WHERE article_id=?', ['@deleted:' + id, id]);
+      await store.executeSql('UPDATE pending_word SET article_id=0, paragraph_key=paragraph_key || ? WHERE article_id=?', ['@deleted:' + id, id]);
       await store.executeSql('DELETE FROM reading_progress WHERE article_id=?', [id]);
       await store.executeSql('DELETE FROM article WHERE id=?', [id]);
     });
@@ -67,14 +71,14 @@ export class ArticleRepository {
     // Small bounded queries keep all imported/curated inputs below SQLite's parameter limit.
     for (let start = 0; start < spellings.length; start += 80) {
       const chunk = spellings.slice(start, start + 80);
-      const candidates = Array.from(new Set<string>(chunk.flatMap((word: string) => articleWordCandidates(word))));
+      const candidates = Array.from(new Set<string>(chunk.flatMap((word: string) => this.candidates(word))));
       if (candidates.length === 0) { continue; }
       const rows = await this.database.getStore().querySql(
         `SELECT w.word FROM word w JOIN word_progress p ON p.word_id=w.id WHERE p.review_count>0 AND w.word COLLATE NOCASE IN (${candidates.map(() => '?').join(',')})`, candidates);
       const known = new Set<string>();
       try { while (rows.goToNextRow()) { known.add(rows.getString(0).toLowerCase()); } } finally { rows.close(); }
       chunk.forEach((word: string) => {
-        if (articleWordCandidates(word).some((candidate: string) => known.has(candidate))) { matched.add(word); }
+        if (this.candidates(word).some((candidate: string) => known.has(candidate))) { matched.add(word); }
       });
     }
     return Array.from(matched);
@@ -85,7 +89,7 @@ export class ArticleRepository {
     const candidates = new Set<string>();
     const unique = new Set<string>(spellings);
     unique.forEach((spelling: string) => {
-      articleWordCandidates(spelling).forEach((candidate: string) => { candidates.add(candidate); });
+      this.candidates(spelling).forEach((candidate: string) => { candidates.add(candidate); });
     });
     const strengths = new Map<string, number>();
     const values: relationalStore.ValueType[] = [];
@@ -101,7 +105,7 @@ export class ArticleRepository {
       while (rows.goToNextRow()) { matched.set(rows.getString(0).toLowerCase(), rows.getLong(1)); }
     } finally { rows.close(); }
     unique.forEach((spelling: string) => {
-      const forms = articleWordCandidates(spelling);
+      const forms = this.candidates(spelling);
       for (const candidate of forms) {
         const strength = matched.get(candidate);
         if (strength !== undefined) { strengths.set(spelling, strength); break; }

@@ -5,11 +5,29 @@ import { systemShare } from '@kit.ShareKit';
 export class SharedWordService {
   private static requestRevision: number = 0;
 
+  static cleanTextForWords(text: string): string {
+    let cleaned = (text || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+    if (cleaned.startsWith('---\n')) {
+      const endMatch = /\n(?:---|\.\.\.)\n/.exec(cleaned.slice(3));
+      if (endMatch && endMatch.index !== undefined) {
+        cleaned = cleaned.slice(3 + endMatch.index + endMatch[0].length);
+      }
+    }
+    return cleaned
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/\b(?:https?|lexiglow|lexinote|lumikit):\/\/[^\s)]+/gi, ' ');
+  }
+
   static wordsFromText(text: string): string[] {
-    const matches = text.slice(0, 4096).match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g) || [];
+    const cleaned = SharedWordService.cleanTextForWords(text);
+    const matches = cleaned.slice(0, 4096).match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g) || [];
     const words: string[] = [];
     for (const match of matches) {
       const word = match.toLowerCase().replace(/’/g, "'");
+      if (word === 'lexiglow' || word === 'lexinote' || word === 'lumikit') {
+        continue;
+      }
       if (word.length <= 64 && words.indexOf(word) < 0) {
         words.push(word);
       }
@@ -34,7 +52,7 @@ export class SharedWordService {
     const shared = await systemShare.getSharedData(want);
     const contents: string[] = [];
     for (const record of shared.getRecords()) {
-      if ((record.utd === 'general.plain-text' || record.utd === 'general.text') && record.content) {
+      if ((record.utd === 'general.plain-text' || record.utd === 'general.text' || record.utd === 'general.markdown') && record.content) {
         contents.push(record.content);
       }
     }

@@ -1,10 +1,12 @@
 import { ExperienceService } from '../service/ExperienceService';
-import { PracticeRecommendation } from '../model/ExperienceModels';
+import { PracticeRecommendation, SentenceMemory } from '../model/ExperienceModels';
 import { ReadingRecommendation } from '../model/ArticleModels';
 import { ArticleService } from '../service/ArticleService';
+import { LexiNoteBridgeService } from '../service/LexiNoteBridgeService';
 import { recommendPractice } from '../utils/ExperienceUtils';
 import { WordExperiencePanel } from '../components/WordExperiencePanel';
 import { SentenceCollectionPage } from './SentenceCollectionPage';
+import { SentenceRecallPage } from './SentenceRecallPage';
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import { accessibility } from '@kit.AccessibilityKit';
 import { deviceInfo, pasteboard } from '@kit.BasicServicesKit';
@@ -66,6 +68,9 @@ struct Index {
   @Local ready: boolean = false;
   @Local error: string = '';
   @Local busy: boolean = false;
+  @Local recallDueIds: string[] = [];
+  @Local recallIds: string[] = [];
+  @Local recallVisible: boolean = false;
   @Local tab: number = 0;
   @Local viewportWidth: number = 0;
   @Local viewportHeight: number = 0;
@@ -300,7 +305,9 @@ struct Index {
       }
       const recommendation = recommendPractice(attempts, session, records);
       const readings = await ArticleService.getInstance().recommendations();
+      const memories = await ExperienceService.getInstance().recallRecommendations();
       if (version !== this.experienceVersion) { return; }
+      this.recallDueIds = memories.map((memory: SentenceMemory): string => memory.id);
       this.recommendation = recommendation; this.readingPick = readings[0] || new ReadingRecommendation(); this.experienceError = '';
     } catch { if (version === this.experienceVersion) { this.experienceError = '学习建议暂未载入，点此重试'; } }
   }
@@ -308,6 +315,14 @@ struct Index {
   private openReading(id: number, key: string = ''): void {
     this.articleId = id; this.articleSourceKey = key;
     this.pathStack.pushPathByName('Article', id);
+  }
+
+  private async openSentenceRecall(ids: string[] = []): Promise<void> {
+    try {
+      await AudioFlowService.getInstance().stop();
+      this.recallIds = ids.slice();
+      this.pathStack.pushPathByName('SentenceRecall', '');
+    } catch { this.toast('原句回忆暂时无法打开，请重试。'); }
   }
 
   private async openRecommendedPractice(): Promise<void> {
@@ -354,6 +369,25 @@ struct Index {
       this.pathStack.pushPathByName('TodayPlan', '');
     }
     else if (route === 'word') { this.openWord(wordId || this.snapshot.dailyWord.id); }
+    else if (route === 'lookupWord') {
+      const spelling = AppStorage.get<string>('launchSpelling') || '';
+      AppStorage.setOrCreate('launchSpelling', '');
+      if (spelling) { this.openWordBySpelling(spelling); }
+    }
+    else if (route === 'article') {
+      const targetArticleId = AppStorage.get<number>('launchArticleId') || wordId;
+      AppStorage.setOrCreate('launchArticleId', 0);
+      if (targetArticleId !== 0) { this.openReading(targetArticleId); }
+    }
+    else if (route === 'mistakes') { this.pathStack.pushPathByName('Mistakes', ''); }
+    else if (route === 'sentences') { this.pathStack.pushPathByName('Sentences', ''); }
+    else if (route === 'sharedArticle') {
+      const title = AppStorage.get<string>('lexiglowSharedArticleTitle') || '知萤联动笔记';
+      const body = AppStorage.get<string>('lexiglowSharedArticleBody') || '';
+      AppStorage.setOrCreate('lexiglowSharedArticleTitle', '');
+      AppStorage.setOrCreate('lexiglowSharedArticleBody', '');
+      if (body) { this.saveAndOpenSharedArticle(title, body); }
+    }
     else if (route === 'shared') {
       this.sharedText = AppStorage.get<string>('lexiglowSharedText') || '';
       if (this.sharedText) { this.pathStack.pushPathByName('SharedWords', ''); }
@@ -684,6 +718,44 @@ struct Index {
         this.studyWordBeforeDetail = undefined; this.studyProgressBeforeDetail = undefined; this.studyEnrichmentBeforeDetail = undefined;
       }
       this.toast('这个单词暂时无法打开。');
+    }
+  }
+
+  async openWordBySpelling(spelling: string): Promise<void> {
+    const clean = (spelling || '').trim().toLowerCase().replace(/’/g, "'");
+    if (!clean) { return; }
+    try {
+      const matched = await this.service.findWordBySpelling(clean);
+      if (matched) {
+        await this.openWord(matched.id);
+        return;
+      }
+      this.sharedText = clean;
+      this.pathStack.pushPathByName('SharedWords', '');
+    } catch {
+      this.toast('这个单词暂时无法打开。');
+    }
+  }
+
+  async saveAndOpenSharedArticle(title: string, rawBody: string): Promise<void> {
+    try {
+      const extracted = LexiNoteBridgeService.extractArticleFromMarkdown(rawBody, title);
+      const id = await ArticleService.getInstance().save(extracted.title, extracted.body);
+      await this.refreshExperience();
+      this.openReading(id);
+      this.toast(`已导入伴读文章《${extracted.title}》`);
+    } catch (err) {
+      this.toast((err as Error).message || '文章暂时无法导入，请检查篇幅或数量上限');
+    }
+  }
+
+  async shareCurrentWordToLexiNote(): Promise<void> {
+    if (!this.currentWord || !this.currentWord.word) { return; }
+    try {
+      const md = LexiNoteBridgeService.buildWordNoteMarkdown(this.currentWord, this.currentProgress, this.enrichment);
+      await LexiNoteBridgeService.shareMarkdownToLexiNote(this.context(), this.currentWord.word, md);
+    } catch {
+      this.toast('暂时无法打开系统分享面板');
     }
   }
 
@@ -1370,6 +1442,10 @@ struct Index {
         Text(this.recommendation.reason).fontSize(14).lineHeight(24).fontColor($r('app.color.text_secondary')).width('100%')
         this.Action({ label: this.recommendation.title, action: () => { this.openRecommendedPractice(); }, primary: false })
       }
+      if (this.recallDueIds.length > 0) {
+        this.Action({ label: `可选 · 回忆之前收藏的 ${this.recallDueIds.length} 条原句`,
+          action: () => { this.openSentenceRecall(); }, primary: false })
+      }
       this.Action({ label: '专项练习 · 自己选一种方式', action: () => { this.openPracticeLibrary(); }, primary: false })
       if (this.experienceError) { Button(this.experienceError).fontColor($r('app.color.text_secondary')).onClick(() => { this.refreshExperience(); }) }
     }.padding(22).width('100%').backgroundColor($r('app.color.surface')).borderRadius(24)
@@ -1381,8 +1457,11 @@ struct Index {
       Text('今日读得懂').fontSize(19).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary')).width('100%')
       Text(this.readingPick.article.title || '把学过的词，放回生活里').fontSize(21).lineHeight(30)
         .fontColor($r('app.color.text_primary')).width('100%')
-      Text(this.readingPick.article.id !== 0 ? `有 ${this.readingPick.learnedCount} 个词形已经学过 · 约 2 分钟` : '离线短文 · 点词收藏原句 · 读后回忆')
+      Text(this.readingPick.article.id !== 0 ? `${this.readingPick.article.level} · ${this.readingPick.article.topic} · 约 ${this.readingPick.article.readingMinutes} 分钟` : '离线短文 · 点词收藏原句 · 读后回忆')
         .fontSize(14).lineHeight(24).fontColor($r('app.color.text_secondary')).width('100%')
+      if (this.readingPick.reason) {
+        Text(this.readingPick.reason).fontSize(13).lineHeight(22).fontColor($r('app.color.text_secondary')).width('100%')
+      }
       this.Action({ label: this.readingPick.paragraphIndex > 0 && !this.readingPick.completed ? '接着上次读 →' : '读一小篇 →',
         action: () => { if (this.readingPick.article.id !== 0) { this.openReading(this.readingPick.article.id); }
           else { this.pathStack.pushPathByName('Articles', ''); } }, primary: false })
@@ -1418,7 +1497,7 @@ struct Index {
             this.HomeQuickCards()
             this.HomeNextStepCard()
             this.HomeReadingCard()
-            Text(`本周真正掌握 +${this.snapshot.stats.weekMastered} 词`).fontSize(13).fontColor($r('app.color.success'))
+            Text(`本周进入掌握阶段 +${this.snapshot.stats.weekMastered} 词`).fontSize(13).fontColor($r('app.color.success'))
               .width('100%')
           }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         }.width('100%').alignItems(VerticalAlign.Top)
@@ -1428,7 +1507,7 @@ struct Index {
         this.HomeNextStepCard()
         this.HomeConstellationCard()
         this.HomeReadingCard()
-        Text(`本周真正掌握 +${this.snapshot.stats.weekMastered} 词`).fontSize(13).fontColor($r('app.color.success'))
+        Text(`本周进入掌握阶段 +${this.snapshot.stats.weekMastered} 词`).fontSize(13).fontColor($r('app.color.success'))
           .width('100%').margin({ bottom: 6 })
       }
     }.width('100%')
@@ -1610,7 +1689,7 @@ struct Index {
         Text('用今天的光，温暖了昨天遗漏的记忆。').fontSize(14).fontColor($r('app.color.success')).width('100%')
       }
       Text(this.snapshot.stats.totalLearned === 0 ? '先点亮 3 个词，这里就会留下你的第一份记录。' :
-        `这周，你真正掌握了 ${this.snapshot.stats.weekMastered} 个词。`)
+        `这周，有 ${this.snapshot.stats.weekMastered} 个词进入掌握阶段。`)
         .fontSize(14).fontColor($r('app.color.success')).lineHeight(22).width('100%')
     }.width('100%')
   }
@@ -1713,7 +1792,7 @@ struct Index {
           this.ProfileActions()
         }.width('100%')
       }
-      Text('词萤 LexiGlow  1.2.1\n让单词一点一点亮起来').fontSize(12).lineHeight(21)
+      Text('词萤 LexiGlow  1.3.0\n让单词一点一点亮起来').fontSize(12).lineHeight(21)
         .fontColor($r('app.color.text_secondary')).textAlign(TextAlign.Center).width('100%').margin({ top: 8 })
     }.width('100%')
   }
@@ -1980,6 +2059,7 @@ struct Index {
                 Row({ space: 10 }) {
                   this.Chip({ label: this.currentProgress.favorite ? '★ 已收藏' : '☆ 收藏', selected: this.currentProgress.favorite, action: () => { this.toggleFavorite(); } })
                   this.Chip({ label: this.currentProgress.isNewWord ? '已加入生词本' : '+ 生词本', selected: this.currentProgress.isNewWord, action: () => { this.toggleNewWord(); } })
+                  this.Chip({ label: '沉淀到知萤', selected: false, action: () => { this.shareCurrentWordToLexiNote(); } })
                 }.width('100%')
               }.layoutWeight(1.15).alignItems(HorizontalAlign.Start)
               Column({ space: 22 }) {
@@ -1992,6 +2072,7 @@ struct Index {
             Row({ space: 10 }) {
               this.Chip({ label: this.currentProgress.favorite ? '★ 已收藏' : '☆ 收藏', selected: this.currentProgress.favorite, action: () => { this.toggleFavorite(); } })
               this.Chip({ label: this.currentProgress.isNewWord ? '已加入生词本' : '+ 生词本', selected: this.currentProgress.isNewWord, action: () => { this.toggleNewWord(); } })
+              this.Chip({ label: '沉淀到知萤', selected: false, action: () => { this.shareCurrentWordToLexiNote(); } })
             }.width('100%')
             this.WordStrengthCard()
             this.WordHistoryCard()
@@ -2141,7 +2222,9 @@ struct Index {
               .backgroundColor($r('app.color.surface')).borderRadius(24)
             Text(`本机当前已学 ${this.snapshot.stats.totalLearned} 个单词。恢复会覆盖本机自定义词书、学习进度、收藏、生词本、统计和学习设置，不会合并。恢复前会自动保留本机安全副本；失败将还原。`)
               .fontSize(16).lineHeight(28).fontColor($r('app.color.text_primary')).width('100%')
-            Text(this.pendingBackup && this.pendingBackup.version >= 4 ? '本备份还会替换文章、原句、阅读位置和逐词练习记录。' : '旧版备份保留本机文章、原句和阅读位置；逐词练习将清空。').fontSize(14).lineHeight(24).fontColor($r('app.color.text_secondary'))
+            Text(this.pendingBackup && this.pendingBackup.version >= 5 ? '本备份还会替换文章、原句、阅读位置、逐词练习、原句回忆成绩和待补充词。' :
+              this.pendingBackup && this.pendingBackup.version >= 4 ? '此旧版备份会替换文章、原句、阅读位置和逐词练习；原句目标需重新确认，回忆成绩清空，待补充词保留。' :
+                '旧版备份保留本机文章、原句、阅读位置和待补充词；逐词练习与原句回忆成绩将清空。').fontSize(14).lineHeight(24).fontColor($r('app.color.text_secondary'))
             Text('提醒开关、提醒时间和通知授权保留本机设置，不从备份迁移。语音包需在这台设备上单独准备。')
               .fontSize(14).lineHeight(25).fontColor($r('app.color.text_secondary')).width('100%')
             if (this.restoreFeedback) {
@@ -2186,7 +2269,10 @@ struct Index {
     NavDestination() {
       if (name === 'Learn') { this.LearnPage(); }
       else if (name === 'PracticeLibrary') { this.PracticeLibraryPage(); }
-      else if (name === 'Sentences') { SentenceCollectionPage({ onWord: (id: number) => { this.openWord(id); }, onSource: (id: number, key: string) => { this.openReading(id, key); } }) }
+      else if (name === 'Sentences') { SentenceCollectionPage({ onWord: (id: number) => { this.openWord(id); }, onSource: (id: number, key: string) => { this.openReading(id, key); }, onRecall: (ids: string[]) => { this.openSentenceRecall(ids); } }) }
+      else if (name === 'SentenceRecall') { SentenceRecallPage({ sentenceIds: this.recallIds, visible: this.recallVisible,
+        onSource: (id: number, key: string) => { this.openReading(id, key); },
+        onDone: () => { this.pathStack.pop(); this.refreshExperience(); } }) }
       else if (name === 'TodayPlan') { this.TodayPlanPage(); }
       else if (name === 'Summary') { this.SummaryPage(); }
       else if (name === 'WordList') { this.WordListPage(); }
@@ -2200,7 +2286,8 @@ struct Index {
       else if (name === 'Cloze') { ClozeChallengePage({ preferredIds: this.preferredIds, onLearn: () => { this.pathStack.pop(); this.beginStudy('today'); }, onLearnedWords: () => { this.returnToLearnedWords(); } }) }
       else if (name === 'Mistakes') { MistakeBookPage({ visible: this.mistakesVisible, onOpenWord: (id: number) => { this.openWord(id); }, onPractice: () => { this.beginStudy('mistake'); } }) }
       else if (name === 'Articles') { ArticleLibraryPage({ onOpenArticle: (id: number) => { this.openReading(id); } }) }
-      else if (name === 'Article') { ArticlePage({ articleId: this.articleId, sourceKey: this.articleSourceKey }) }
+      else if (name === 'Article') { ArticlePage({ articleId: this.articleId, sourceKey: this.articleSourceKey,
+        onOpenMemories: () => { this.pathStack.pushPathByName('Sentences', ''); } }) }
       else if (name === 'AudioFlow') { AudioFlowPage({ words: this.activityWords, onBack: () => { this.pathStack.pop(); } }) }
       else if (name === 'Night' || name === 'Desk') {
         QuietReviewPage({ words: this.activityWords, mode: name === 'Night' ? 'night' : 'desk',
@@ -2232,6 +2319,7 @@ struct Index {
       .backgroundColor($r('app.color.background'))
       .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
       .onShown(() => {
+        if (name === 'SentenceRecall') { this.recallVisible = true; }
         if (name === 'Summary' || name === 'PracticeLibrary') { this.refreshExperience(); }
         if (name === 'WordDetail') { this.detailVisible = true; }
         if (name === 'Mistakes') { this.mistakesVisible = true; }
@@ -2239,7 +2327,8 @@ struct Index {
         if (name === 'TodayPlan') { this.refresh().catch(() => {}); }
       })
       .onHidden(() => {
-        if (['MeaningChallenge', 'Spelling', 'Dictation', 'Cloze', 'Article'].indexOf(name) >= 0) { this.refreshExperience(); }
+        if (name === 'SentenceRecall') { this.recallVisible = false; }
+        if (['MeaningChallenge', 'Spelling', 'Dictation', 'Cloze', 'Article', 'SentenceRecall', 'Sentences'].indexOf(name) >= 0) { this.refreshExperience(); }
         if (name === 'WordDetail') { this.detailVisible = false; }
         if (name === 'Mistakes') { this.mistakesVisible = false; }
         if (name === 'Learn' && this.pathStack.getAllPathName().slice(-1)[0] !== 'Summary') { this.invalidateUndo(); }
@@ -2333,6 +2422,7 @@ struct Index {
     if (name === 'Mistakes') { return '错题本'; }
     if (name === 'PracticeLibrary') { return '专项练习'; }
     if (name === 'Sentences') { return '我的原句'; }
+    if (name === 'SentenceRecall') { return '原句回忆'; }
     if (name === 'Articles') { return '阅读'; }
     if (name === 'Article') { return '阅读文章'; }
     if (name === 'AudioFlow') { return '听词磨耳朵'; }

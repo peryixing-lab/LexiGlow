@@ -6,6 +6,7 @@ import { dateKey, dayStart, shiftedDate, weekStart } from '../utils/TimeUtils';
 import { strengthAfterResult } from '../utils/MemoryUtils';
 import { CONFUSING_SEEDS, ENRICHMENT_SEEDS } from '../utils/WordEnrichmentSeeds';
 import { DatabaseManager, DatabaseTransaction } from './DatabaseManager';
+import { LookupDictionaryPack } from '../model/LookupDictionaryModels';
 
 export class LearningRepository {
   private database: DatabaseManager;
@@ -29,6 +30,33 @@ export class LearningRepository {
 
   async dictionaryVersion(): Promise<number> {
     return this.scalar("SELECT CAST(value AS INTEGER) FROM app_meta WHERE key='dictionary_version'");
+  }
+
+  /** Append query-only identities without changing book membership, progress, or study plans. */
+  async importLookupDictionary(pack: LookupDictionaryPack): Promise<void> {
+    const marker = `${pack.version}_${pack.sourceCommit}`;
+    await this.database.transaction(async (store: DatabaseTransaction) => {
+      const versionRows = await store.querySql("SELECT value FROM app_meta WHERE key='lookup_dictionary_version'");
+      try { if (versionRows.goToFirstRow() && versionRows.getString(0) === marker) { return; } }
+      finally { versionRows.close(); }
+      await store.executeSql('DROP TABLE IF EXISTS temp.lookup_import_stage');
+      await store.executeSql('CREATE TEMP TABLE lookup_import_stage(word TEXT PRIMARY KEY COLLATE NOCASE,phonetic TEXT NOT NULL,meaning TEXT NOT NULL)');
+      console.info('[LexiGlowStartup] lookup stage created');
+      let pending: relationalStore.ValuesBucket[] = [];
+      for (const entry of pack.entries) {
+        pending.push({ word: entry.word, phonetic: entry.phonetic, meaning: entry.meaning });
+        if (pending.length === 500) { await store.batchInsert('lookup_import_stage', pending); pending = []; }
+      }
+      if (pending.length > 0) { await store.batchInsert('lookup_import_stage', pending); }
+      console.info('[LexiGlowStartup] lookup stage loaded');
+      // Upgrade only bundled book definitions, leaving custom-only entries and book overrides intact.
+      // Drive the update by one ID set. Two independent IN sets make SQLite probe their Cartesian product.
+      await store.executeSql("UPDATE word SET meaning=(SELECT s.meaning FROM lookup_import_stage s WHERE s.word=word.word COLLATE NOCASE) WHERE EXISTS(SELECT 1 FROM lookup_import_stage s WHERE s.word=word.word COLLATE NOCASE) AND id IN(SELECT i.word_id FROM word_book_item i JOIN word_book b ON i.book_id=b.id WHERE b.category<>'custom')");
+      console.info('[LexiGlowStartup] lookup meanings updated');
+      await store.executeSql("INSERT INTO word(word,phonetic,meaning,example,translation) SELECT s.word,s.phonetic,s.meaning,'','' FROM lookup_import_stage s WHERE NOT EXISTS(SELECT 1 FROM word w WHERE w.word=s.word COLLATE NOCASE) ORDER BY s.word");
+      await store.executeSql('DROP TABLE lookup_import_stage');
+      await store.executeSql('INSERT OR REPLACE INTO app_meta(key,value) VALUES(?,?)', ['lookup_dictionary_version', marker]);
+    });
   }
 
   /** Restore the product-plan strength rules and totals without changing the saved schedule. */

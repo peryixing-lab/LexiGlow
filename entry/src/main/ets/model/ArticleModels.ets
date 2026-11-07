@@ -1,4 +1,10 @@
 import { ReadingQuestion } from './ExperienceModels';
+export class ReadingWordNote {
+  headword: string = '';
+  example: string = '';
+  translation: string = '';
+  collocation: string = '';
+}
 export class ArticleSummary {
   id: number = 0;
   title: string = '';
@@ -10,6 +16,12 @@ export class Article extends ArticleSummary {
   body: string = '';
   questions: ReadingQuestion[] = [];
   source: string = '';
+  level: string = '';
+  topic: string = '';
+  readingMinutes: number = 0;
+  focusHeadwords: string[] = [];
+  wordNotes: ReadingWordNote[] = [];
+  personNames: string[] = [];
 }
 
 export class ArticleImport {
@@ -25,4 +37,5 @@ export class ReadingRecommendation {
   focusWords: string[] = [];
   completed: boolean = false;
   paragraphIndex: number = 0;
+  reason: string = '';
 }

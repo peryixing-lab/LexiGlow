@@ -11,6 +11,8 @@ import { LearningRepository } from '../repository/LearningRepository';
 import { UserSettingsStore } from '../store/UserSettingsStore';
 import { dateKey, dayStart } from '../utils/TimeUtils';
 import { dailyReviewQuota, examPlanAdvice, scheduleReview } from './ReviewScheduler';
+import { OfflineDictionaryService } from './OfflineDictionaryService';
+import { PendingWordService } from './PendingWordService';
 
 /** The UI only talks to this service; SQL, scheduling, and durable resume stay below the page layer. */
 export class LearningService {
@@ -24,6 +26,7 @@ export class LearningService {
   private ready: boolean = false;
   private undoAvailable: boolean = false;
   private operations: Promise<void> = Promise.resolve();
+  private lookupDictionary: OfflineDictionaryService = new OfflineDictionaryService();
 
   /** A restore must not race an older plan refresh, setting change, answer, or export snapshot. */
   private serialize<T>(operation: () => Promise<T>): Promise<T> {
@@ -52,8 +55,12 @@ export class LearningService {
   }
 
   private async prepare(context: common.Context): Promise<void> {
+    const startedAt = Date.now();
+    console.info('[LexiGlowStartup] database begin');
     await this.database.initialize(context);
+    console.info('[LexiGlowStartup] settings begin');
     await this.settingsStore.initialize(context, this.database);
+    console.info('[LexiGlowStartup] catalog read');
     const bytes = await context.resourceManager.getRawFileContent('wordbooks/catalog.json');
     const catalog = JSON.parse(util.TextDecoder.create('utf-8').decodeToString(bytes)) as DictionaryCatalog;
     if (!Number.isInteger(catalog.version) || catalog.version < 1 || !Array.isArray(catalog.books) ||
@@ -63,10 +70,17 @@ export class LearningService {
     for (const book of catalog.books) {
       this.validateWords(book.words);
     }
+    console.info('[LexiGlowStartup] catalog import');
     await this.repository.importCatalog(catalog);
+    console.info('[LexiGlowStartup] lookup read');
+    const lookup = await this.lookupDictionary.initialize(context);
+    console.info('[LexiGlowStartup] lookup import');
+    await this.repository.importLookupDictionary(lookup);
+    console.info('[LexiGlowStartup] learning migrations');
     await this.repository.migrateLearningSemantics();
     await this.repository.migrateAdaptiveMetrics();
     await this.repository.importEnrichmentSeeds();
+    console.info('[LexiGlowStartup] session and plan');
     const settings = this.getSettings();
     const books = await this.repository.getBooks();
     if (books.length === 0) {
@@ -78,10 +92,12 @@ export class LearningService {
     }
     await this.repository.clearUndo();
     ExperienceService.getInstance().initialize(this.database);
+    PendingWordService.getInstance().initialize(this.database);
     ArticleService.getInstance().initialize(context, this.database);
     this.session = await this.repository.loadSession();
     await this.ensurePlan();
     this.ready = true;
+    console.info(`[LexiGlowStartup] ready ${Date.now() - startedAt}ms`);
   }
 
   getSettings(): UserSettings {
@@ -158,8 +174,15 @@ export class LearningService {
     return snapshot;
   }
 
-  getWords(bookId: string, filter: string, query: string): Promise<Word[]> {
-    return this.repository.getWords(bookId, filter, query);
+  async getWords(bookId: string, filter: string, query: string): Promise<Word[]> {
+    const words = await this.repository.getWords(bookId, filter, query);
+    if (bookId || filter !== 'all' || !query.trim()) { return words; }
+    const candidates = await this.lookupCandidates(query);
+    const candidateIds = new Set<number>(candidates.map((word: Word): number => word.id));
+    const surface = query.trim().toLowerCase().replace(/’/g, "'");
+    const independentSurface = this.lookupSpellings(surface).indexOf(surface) >= 0;
+    return candidates.concat(words.filter((word: Word): boolean => !candidateIds.has(word.id) &&
+      (independentSurface || word.word.trim().toLowerCase() !== surface)));
   }
 
   getWord(id: number): Promise<Word> {
@@ -205,6 +228,18 @@ export class LearningService {
   findWordBySpelling(headword: string): Promise<Word | undefined> {
     return this.repository.findWordBySpelling(headword);
   }
+
+  /** Exact and lemma candidates share persistent word IDs across reading, search, and sharing. */
+  async lookupCandidates(spelling: string): Promise<Word[]> {
+    const result: Word[] = [];
+    for (const headword of this.lookupDictionary.headwords(spelling)) {
+      const word = await this.repository.findWordBySpelling(headword);
+      if (word && !result.some((existing: Word): boolean => existing.id === word.id)) { result.push(word); }
+    }
+    return result;
+  }
+
+  lookupSpellings(spelling: string): string[] { return this.lookupDictionary.headwords(spelling); }
 
   getNightWords(limit: number = 5): Promise<Word[]> {
     return this.repository.getNightWords(Date.now(), limit, this.getSettings().currentBookId);

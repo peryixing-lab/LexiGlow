@@ -1,5 +1,5 @@
 import { ShareExtensionAbility, UIExtensionContentSession, Want } from '@kit.AbilityKit';
-import { SharedWordService } from '../service/SharedWordService';
+import { LexiNoteBridgeService } from '../service/LexiNoteBridgeService';
 
 /** Official system sharing target. The share page forwards only after a user's tap. */
 export default class WordShareAbility extends ShareExtensionAbility {
@@ -11,11 +11,11 @@ export default class WordShareAbility extends ShareExtensionAbility {
   }
 
   private async prepare(want: Want, session: UIExtensionContentSession): Promise<void> {
-    let text = '';
-    try { text = await SharedWordService.textFromWant(want); } catch (_) {}
+    const resolved = await LexiNoteBridgeService.resolveSharedWant(want);
     if (this.sessions.indexOf(session) < 0) { return; }
     const storage = new LocalStorage();
-    storage.setOrCreate('sharedText', text);
+    storage.setOrCreate('sharedTitle', resolved.title);
+    storage.setOrCreate('sharedText', resolved.body);
     storage.setOrCreate('shareSession', session);
     session.loadContent('pages/SharedWordPage', storage);
   }

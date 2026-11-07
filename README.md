@@ -153,7 +153,7 @@
 - V1 **不需要登录**，所有学习数据保存在本机。
 - 通知权限在用户主动开启提醒时才申请，首屏不弹权限请求。
 - 文件读写通过系统选择器完成，应用只访问用户明确选定的文件。
-- 学习和英语朗读**离线**可用；英语音库随应用安装，不提供运行时下载入口。
+- 学习和英语朗读**离线**可用；英语音色由华为系统管理，缺少时可由用户主动下载，准备完成后离线使用。
 - 中文释义仅使用设备已安装的离线音色，不可用时显示提示。应用不请求联网权限，不发送网络请求。
 
 ---
@@ -219,19 +219,20 @@ hdc shell aa test -b com.lovexjy.lexiglow -m entry_test \
 |------|------|------|
 | MVP | ✅ 已实现 | CET-4 词库、学习/复习闭环、间隔调度、RDB + Preferences、基础统计 |
 | V1.0 | ✅ 已实现 | 五本词书、收藏/生词本、3 分钟速学、桌面卡片、深浅色、28 天统计日历、导入导出 |
-| V1.5 | 🔜 计划中 | FSRS 算法升级、AI 例句/辨析、账号同步、自定义导入 |
+| V1.3 | ✅ 本地实现 | 独立离线查询词典、词形候选、原句回忆、18 篇分层短文、待补充词与备份 v5 |
+| 后续 | 🔜 待独立规划 | FSRS 算法、AI 例句/辨析、账号自动同步 |
 
 ---
 
 ## 发布说明
 
-当前版本为 **v1.2.1**（`versionCode: 200612083`），Bundle ID：`com.lovexjy.lexiglow`。
+当前工程版本为 **v1.3.0**（`versionCode: 200613000`），Bundle ID：`com.lovexjy.lexiglow`。本地构建与应用市场发布分别验收。
 
 ---
 
 ## 许可
 
-本项目源代码版权归作者所有。内置词库数据遵循 [MIT License（ECDICT）](entry/src/main/resources/rawfile/licenses/ECDICT-MIT.txt)；英语神经音色遵循 [MeloTTS 模型 MIT 许可](entry/src/main/resources/rawfile/licenses/MeloTTS-English-LICENSE.txt)，推理引擎遵循 [ONNX Runtime MIT 许可](entry/src/main/resources/rawfile/licenses/ONNXRuntime-LICENSE.txt)，文本前端遵循 [Flite 上游许可](entry/src/main/resources/rawfile/licenses/Flite-COPYING.txt)。
+应用许可说明见 [LexiGlow-GPL-3.0.txt](entry/src/main/resources/rawfile/licenses/LexiGlow-GPL-3.0.txt)。内置词书与查询词典遵循 [MIT License（ECDICT）](entry/src/main/resources/rawfile/licenses/ECDICT-MIT.txt)。语音由设备上的华为系统服务提供，不随应用分发模型或推理引擎。
 
 ---
 
@@ -251,4 +252,14 @@ node tools/test-audio-flow.cjs
 node tools/test-ui-lifecycle.cjs
 ```
 
-学习备份当前版本为3，保存完整词典、词书顺序、学习进度、回忆记录、统计、收藏、生词本、未完成学习会话、拼写成绩和补光记录。在「我的 → 导出学习数据」生成 JSON，将文件传至另一台设备，再使用「从备份恢复进度」。恢复前显示摘要并确认覆盖；提醒开关、时间与系统授权保留目标设备的设置。支持内容完整的 v1/v2 备份；旧备份缺少单词引用时会拒绝恢复并要求在原设备重新导出。精确真题频次与完整FSRS属于后续数据/算法工作。
+学习备份当前版本为 5，在原有词书、进度、会话、成绩与统计之外保存文章、原句准确词形、阅读位置、逐词练习、原句回忆成绩及待补充词。内置词典使用紧凑身份映射，被使用的查询新词带完整兜底内容。在「我的 → 导出学习数据」生成 JSON，传至另一台设备后选择「从备份恢复进度」。恢复前显示摘要并确认覆盖；提醒与系统授权保留目标设备设置。兼容完整的 v1–v4 备份，旧版缺少的原句目标需重新确认，回忆成绩清空；缺少必要单词引用时会拒绝恢复。精确真题频次与完整 FSRS 属于后续工作。
+
+## 1.3 更新
+
+- 独立离线查询词典增加到 15,255 词头，保留完整义项与词形；不改变五本词书的学习范围或旧单词编号。阅读、全词典搜索与系统收词使用统一候选。
+- 阅读遇到未收录词时可保存原句为待补充项，填写释义后转为词条与原句；不自动增加每日学习任务。
+- 我的原句支持搜索、来源筛选、目标词确认、暂停推荐和原句回忆。跨日推荐每天最多 5 条，提示与独立答对分别记录，练习不修改间隔调度。
+- 精选短文扩充为 18 篇，支持层次与主题筛选、预计时间、续读和推荐理由；提供 36 道理解题、54 条双语词语提示与搭配。人名使用明确的本文语境说明。
+- 数据库升级到 Schema 6、备份升级到 v5；旧词条身份、学习进度、自定义释义和原四篇内容保持兼容。
+
+新增检查：`node tools/test-lookup-dictionary.cjs`、`node tools/test-sentence-recall.cjs`、`node tools/test-pending-words.cjs`、`node tools/test-curated-reading.cjs`。阅读内容与审阅口径见 [1.3 阅读说明](docs/V1.3_READING_CONTENT.md)。

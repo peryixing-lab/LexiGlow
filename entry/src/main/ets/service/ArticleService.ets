@@ -6,7 +6,7 @@ import { Article, ArticleSummary, ReadingRecommendation } from '../model/Article
 import { Word } from '../model/AppModels';
 import { DatabaseManager } from '../repository/DatabaseManager';
 import { ArticleRepository } from '../repository/ArticleRepository';
-import { articleWordCandidates } from '../utils/ArticleTokenizer';
+import { readingRecommendationReason } from '../utils/CuratedReadingUtils';
 import { LearningService } from './LearningService';
 
 export class ArticleService {
@@ -15,7 +15,8 @@ export class ArticleService {
   static getInstance(): ArticleService { return ArticleService.instance; }
 
   initialize(_context: common.Context, database: DatabaseManager): void {
-    this.repository = new ArticleRepository(database);
+    this.repository = new ArticleRepository(database,
+      (spelling: string): string[] => LearningService.getInstance().lookupSpellings(spelling));
   }
 
   private getRepository(): ArticleRepository {
@@ -30,6 +31,7 @@ export class ArticleService {
 
   async recommendations(): Promise<ReadingRecommendation[]> {
     const result: ReadingRecommendation[] = [];
+    let latestTopic: string = ''; let latestCompletedAt: number = 0;
     for (const article of curatedArticles()) {
       const recommendation = new ReadingRecommendation(); recommendation.article = article;
       const words = Array.from(new Set<string>(tokenizeArticleText(article.body)
@@ -40,10 +42,20 @@ export class ArticleService {
       recommendation.focusWords = words.filter((word: string) => learned.indexOf(word) < 0).filter((word: string) => word.length > 4).slice(0, 3);
       const progress = await ExperienceService.getInstance().reading(article.id);
       recommendation.completed = progress.completed; recommendation.paragraphIndex = progress.paragraphIndex;
+      recommendation.reason = readingRecommendationReason(recommendation);
+      if (progress.completed && progress.updatedAt > latestCompletedAt) {
+        latestTopic = article.topic; latestCompletedAt = progress.updatedAt;
+      }
       result.push(recommendation);
     }
+    const levels = ['入门', '基础', '进阶'];
     return result.sort((a: ReadingRecommendation, b: ReadingRecommendation) =>
-      Number(a.completed) - Number(b.completed) || b.coverage - a.coverage || b.article.id - a.article.id);
+      Number(a.completed) - Number(b.completed) ||
+      Number(b.paragraphIndex > 0 && !b.completed) - Number(a.paragraphIndex > 0 && !a.completed) ||
+      Math.floor(b.coverage / 10) - Math.floor(a.coverage / 10) ||
+      Number(a.article.topic === latestTopic) - Number(b.article.topic === latestTopic) ||
+      levels.indexOf(a.article.level) - levels.indexOf(b.article.level) || b.coverage - a.coverage ||
+      b.article.id - a.article.id);
   }
 
   async savePosition(articleId: number, paragraphIndex: number): Promise<void> {
@@ -58,11 +70,11 @@ export class ArticleService {
   }
 
   async lookup(spelling: string): Promise<Word | undefined> {
-    for (const candidate of articleWordCandidates(spelling)) {
-      const word = await LearningService.getInstance().findWordBySpelling(candidate);
-      if (word) { return word; }
-    }
-    return undefined;
+    return (await this.lookupCandidates(spelling))[0];
+  }
+
+  lookupCandidates(spelling: string): Promise<Word[]> {
+    return LearningService.getInstance().lookupCandidates(spelling);
   }
 
 }

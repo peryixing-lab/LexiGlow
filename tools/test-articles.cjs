@@ -45,9 +45,9 @@ Module._load = function(name, parent, isMain) {
     return { DocxReader: { async read() { return 'An entire article.\nSecond paragraph, with punctuation!'; } } };
   }
   if (name === './LearningService' && parent.filename.endsWith('ArticleService.ets')) {
-    return { LearningService: { getInstance: () => ({ async findWordBySpelling(word) {
-      lookupCalls.push(word); return dictionary.get(word);
-    } }) } };
+    return { LearningService: { getInstance: () => ({ async lookupCandidates(word) {
+      lookupCalls.push(word); return dictionary.get(word) || [];
+    }, lookupSpellings: spelling => tokenizer.articleWordCandidates(spelling) }) } };
   }
   return originalLoad.call(this, name, parent, isMain);
 };
@@ -67,6 +67,7 @@ const withRepository = async run => {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec('CREATE TABLE article(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,body TEXT NOT NULL,created_at INTEGER NOT NULL); CREATE TABLE word(id INTEGER PRIMARY KEY,word TEXT COLLATE NOCASE UNIQUE); CREATE TABLE word_progress(word_id INTEGER PRIMARY KEY,strength INTEGER,review_count INTEGER DEFAULT 0)');
   sqlite.exec('CREATE TABLE sentence_memory(id TEXT PRIMARY KEY,word_id INTEGER,article_id INTEGER,paragraph_key TEXT); CREATE TABLE reading_progress(article_id INTEGER PRIMARY KEY)');
+  sqlite.exec('CREATE TABLE pending_word(id TEXT PRIMARY KEY,article_id INTEGER,paragraph_key TEXT)');
   let writes = Promise.resolve(); const queries = [];
   const connection = {
     async querySql(sql, args = []) { queries.push(sql); return new Rows(sqlite.prepare(sql).all(...args)); },
@@ -158,15 +159,14 @@ const chooseFile = (filename, body) => {
       assert.equal(queries.length, 1); assert(queries[0].includes(' IN ('));
       await repo.paragraphStrengths([]); assert.equal(queries.length, 1);
     }));
-  await check('Lookup is exact first, local and accepts regular candidates without irregular guesses', async () => {
+  await check('Article lookup preserves unified local candidates and its single-word compatibility API', async () => {
     dictionary.clear(); lookupCalls.length = 0;
-    dictionary.set('running', { id: 1, word: 'running' }); dictionary.set('run', { id: 2, word: 'run' });
-    assert.equal((await ArticleService.getInstance().lookup('running')).id, 1);
-    assert.deepEqual(lookupCalls, ['running']);
-    dictionary.delete('running'); lookupCalls.length = 0;
+    const candidates = [{ id: 2, word: 'run' }, { id: 1, word: 'running' }];
+    dictionary.set('running', candidates);
+    assert.deepEqual(await ArticleService.getInstance().lookupCandidates('running'), candidates);
     assert.equal((await ArticleService.getInstance().lookup('running')).id, 2);
-    assert.equal(lookupCalls.at(-1), 'run');
     assert.equal(await ArticleService.getInstance().lookup('went'), undefined);
+    assert.deepEqual(lookupCalls, ['running', 'running', 'went']);
   });
   await check('Canceling article picker keeps the current draft and never opens a file', async () => {
     pickerState.uris = []; pickerState.reads = 0; pickerState.closed = 0;

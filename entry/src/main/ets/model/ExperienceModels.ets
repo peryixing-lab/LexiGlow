@@ -17,6 +17,18 @@ export class SentenceMemory {
   sentence: string = '';
   note: string = '';
   createdAt: number = 0;
+  targetText: string = '';
+  targetStart: number = -1;
+  recallEnabled: boolean = true;
+}
+
+export class SentenceRecallAttempt {
+  id: string = '';
+  sentenceId: string = '';
+  correct: boolean = false;
+  hinted: boolean = false;
+  durationMs: number = 0;
+  recordedAt: number = 0;
 }
 
 export class ReadingProgress {

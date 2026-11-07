@@ -15,6 +15,8 @@ const articleModels = require(path.join(sources, 'model/ArticleModels.ets'));
 const experienceModels = require(path.join(sources, 'model/ExperienceModels.ets'));
 const experienceUtils = require(path.join(sources, 'utils/ExperienceUtils.ets'));
 const tokenizer = require(path.join(sources, 'utils/ArticleTokenizer.ets'));
+const sentenceRecall = require(path.join(sources, 'utils/SentenceRecallUtils.ets'));
+const pendingModels = require(path.join(sources, 'model/PendingWordModels.ets'));
 const deferred = () => {
   let resolve, reject;
   const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
@@ -32,7 +34,7 @@ const loadComponent = (name, stubs) => {
   const output = ts.transpileModule(logic, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2021
   }, fileName: `${name}.ts` }).outputText;
-  const values = { ...models, ...articleModels, ...experienceModels, ...experienceUtils, ...tokenizer,
+  const values = { ...models, ...articleModels, ...experienceModels, ...experienceUtils, ...tokenizer, ...sentenceRecall, ...pendingModels,
     ExperienceService: { getInstance: () => ({ async reading(id) { return { articleId: id, paragraphIndex: 0 }; }, async sentences() { return []; } }) }, exports: {},
     Scroller: class { scrollToIndex() {} }, ScrollAlign: { START: 0 },
     adaptiveWindowState: () => ({ bottomInset: 0 }), ...stubs };
@@ -59,14 +61,14 @@ const check = async (label, action) => { await action(); checks++; console.log(`
   });
   await check('Rapid word taps ignore old definitions and old progress reads', async () => {
     const first = deferred(), oldProgress = deferred();
-    const service = { lookup: spelling => spelling === 'first' ? first.promise : Promise.resolve(word(2, spelling)) };
+    const service = { lookupCandidates: spelling => spelling === 'first' ? first.promise : Promise.resolve([word(2, spelling)]) };
     const learning = { getProgress: id => id === 1 ? oldProgress.promise : Promise.resolve(progress(id)) };
     const page = loadComponent('ArticlePage', {
       ArticleService: { getInstance: () => service }, LearningService: { getInstance: () => learning }
     });
-    const firstTap = page.openWord('first'); await page.openWord('second'); first.resolve(word(1, 'first')); await firstTap;
+    const firstTap = page.openWord('first'); await page.openWord('second'); first.resolve([word(1, 'first')]); await firstTap;
     assert.equal(page.selectedWord.id, 2); assert.equal(page.selectedProgress.wordId, 2);
-    service.lookup = async spelling => word(spelling === 'first' ? 1 : 2, spelling);
+    service.lookupCandidates = async spelling => [word(spelling === 'first' ? 1 : 2, spelling)];
     const waitingProgress = page.openWord('first'); await Promise.resolve();
     await page.openWord('second'); oldProgress.resolve(progress(1)); await waitingProgress;
     assert.equal(page.selectedWord.id, 2); assert.equal(page.selectedProgress.wordId, 2);
@@ -78,7 +80,7 @@ const check = async (label, action) => { await action(); checks++; console.log(`
       getProgress: async id => progress(id)
     };
     const page = loadComponent('ArticlePage', {
-      ArticleService: { getInstance: () => ({ lookup: async spelling => word(2, spelling) }) },
+      ArticleService: { getInstance: () => ({ lookupCandidates: async spelling => [word(2, spelling)] }) },
       LearningService: { getInstance: () => learning }
     });
     page.selectedWord = word(1, 'first'); page.selectedProgress = progress(1);

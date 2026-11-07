@@ -26,7 +26,7 @@ export default class EntryBackupAbility extends BackupExtensionAbility {
       name: 'learning.db', rootDir: directory, securityLevel: relationalStore.SecurityLevel.S1
     });
     try {
-      if (snapshot.version < 1 || snapshot.version > 5) { throw new Error('系统备份版本不受支持'); }
+      if (snapshot.version < 1 || snapshot.version > 6) { throw new Error('系统备份版本不受支持'); }
       const rows = await snapshot.querySql('PRAGMA quick_check');
       try { if (!rows.goToFirstRow() || rows.getString(0) !== 'ok') { throw new Error('系统备份不完整'); } }
       finally { rows.close(); }

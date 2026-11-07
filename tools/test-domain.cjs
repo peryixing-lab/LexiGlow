@@ -115,8 +115,13 @@ const catalog = { version: 1, books: [
   { id: 'cet6', name: '六级', category: 'exam', description: 'test', words: [
     word(' Resilient ', 'adj. 有韧性的'), word('maintain', 'v. 保持') ] }
 ] };
-const contextFor = catalog => ({ resourceManager: { async getRawFileContent() {
-  return new TextEncoder().encode(JSON.stringify(catalog));
+const contextFor = catalog => ({ resourceManager: { async getRawFileContent(name) {
+  const entries = [...new Map(catalog.books.flatMap(book => book.words)
+    .filter(item => /^[a-z]+(?:[-' ][a-z]+)*$/.test(item.word.trim().toLowerCase()))
+    .map(item => [item.word.trim().toLowerCase(), { word: item.word.trim().toLowerCase(), phonetic: item.phonetic,
+      meaning: item.meaning, exchange: '' }])).values()];
+  const payload = name === 'dictionary/lookup-v1.json' ? { version: 1, sourceCommit: 'test', entries } : catalog;
+  return new TextEncoder().encode(JSON.stringify(payload));
 } } });
 const withIsolatedRepository = async action => {
   const previousStore = stores.get('ciying.db');
@@ -309,7 +314,7 @@ const seedVersionOneLearningState = async (repo, store, now) => {
       assert.equal(legacy.db.prepare('SELECT strength FROM word_progress').get().strength, 84);
       legacy.createTransaction = originalTransaction;
       await manager.initialize(contextFor(catalog));
-      assert.equal(legacy.version, 5);
+      assert.equal(legacy.version, 6);
       const progress = await new LearningRepository(manager).getProgress(1);
       assert.equal(progress.reviewCount, 7); assert.equal(progress.strength, 84);
       assert.equal(progress.nextReviewAt, 123456); assert.equal(progress.consecutiveKnown, 0);
@@ -1195,7 +1200,7 @@ const seedVersionOneLearningState = async (repo, store, now) => {
       const valid = await seedBackup(service, repo, store);
       const before = wholeDatabase(store); const session = service.getSession(); const settings = service.getSettings();
       assert.throws(() => BackupService.parse('{"format":'), /完整/);
-      for (const damage of [b => { b.version = 5; }, b => { b.wordIdentities.push(b.wordIdentities[0]); },
+      for (const damage of [b => { b.version = 6; }, b => { b.wordIdentities.push(b.wordIdentities[0]); },
         b => { b.progress[0].wordId = 999999; }, b => { b.records[0].itemType = 'anything'; },
         b => { b.session.index = 99; }, b => { b.books.find(book => book.category === 'custom').words[0].id = 999999; },
         b => { b.settings.dailyNewTarget = 0; }, b => { b.days[0].date = '2026-02-30'; },
@@ -1318,10 +1323,13 @@ const seedVersionOneLearningState = async (repo, store, now) => {
       store.createTransaction = createTransaction;
     });
   });
-  await check('schema 3 to 5 migration rolls all DDL and user_version back on interruption', async () => {
+  await check('schema 3 to 6 migration rolls all DDL and user_version back on interruption', async () => {
     await withIsolatedRepository(async (repo, store) => {
       const entry = (await repo.getWords('', 'all', ''))[0];
       await seedLearnedWord(store, entry.id, now - 1000, 84);
+      for (const table of ['sentence_recall_attempt', 'pending_word', 'sentence_memory', 'reading_progress', 'practice_attempt']) {
+        await store.executeSql(`DROP TABLE ${table}`);
+      }
       await store.executeSql('DROP TABLE article'); await store.executeSql('DROP TABLE review_undo');
       await store.executeSql('DROP INDEX idx_progress_mistakes'); store.version = 3;
       const before = wholeDatabase(store), createTransaction = store.createTransaction.bind(store);
@@ -1337,7 +1345,7 @@ const seedVersionOneLearningState = async (repo, store, now) => {
       assert.equal(store.version, 3); assert.deepEqual(wholeDatabase(store), before);
       assert.equal(store.db.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='review_undo'").get().n, 0);
       store.createTransaction = createTransaction;
-      await new DatabaseManager().initialize(contextFor(catalog)); assert.equal(store.version, 5);
+      await new DatabaseManager().initialize(contextFor(catalog)); assert.equal(store.version, 6);
       assert.equal((await repo.getProgress(entry.id)).strength, 84);
       assert.equal(store.db.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='article'").get().n, 1);
     });
@@ -1465,7 +1473,7 @@ const seedVersionOneLearningState = async (repo, store, now) => {
     await legacy.executeSql('INSERT INTO word_progress(word_id,review_count,strength,level) VALUES(1,7,84,7)');
     const recovered = new LearningService(); await recovered.initialize(contextFor(actualCatalog));
     const snapshot = await recovered.getSnapshot();
-    assert.equal(legacy.version, 5);
+    assert.equal(legacy.version, 6);
     assert.equal(snapshot.books.length, 5);
     assert.equal(snapshot.books[0].totalCount, actualCatalog.books[0].words.length);
     assert.equal(snapshot.stats.totalLearned, 1); assert.equal(snapshot.stats.mastered, 1);
@@ -1604,12 +1612,12 @@ const seedVersionOneLearningState = async (repo, store, now) => {
       assert.deepEqual(saved.answers, [1, 0]);
     });
   });
-  await check('curated reading has stable IDs, 100–180 words, two valid questions and evidence-based ranking', async () => {
-    const articles = curatedArticles(); assert.equal(articles.length, 4);
-    assert.equal(new Set(articles.map(article => article.id)).size, 4);
+  await check('curated reading has stable IDs, 100–220 words, two valid questions and evidence-based ranking', async () => {
+    const articles = curatedArticles(); assert.equal(articles.length, 18);
+    assert.equal(new Set(articles.map(article => article.id)).size, 18);
     for (const article of articles) {
       const count = article.body.match(/[A-Za-z]+(?:'[A-Za-z]+)*/g).length;
-      assert.ok(count >= 100 && count <= 180, `${article.title}: ${count}`);
+      assert.ok(count >= 100 && count <= 220, `${article.title}: ${count}`);
       assert.equal(article.questions.length, 2);
       for (const question of article.questions) { assert.ok(question.options[question.answer]); assert.ok(question.explanation); }
     }
@@ -1634,7 +1642,7 @@ const seedVersionOneLearningState = async (repo, store, now) => {
       await experiences.saveSentence(memory('saved', articleId)); await experiences.saveAttempt(attempt('attempt'));
       const reading = new experience.ReadingProgress(); reading.articleId = -1; reading.answers = [1, 0]; reading.completed = true;
       await experiences.saveReading(reading);
-      const backup = BackupService.parse(await service.exportData()); assert.equal(backup.version, 4);
+      const backup = BackupService.parse(await service.exportData()); assert.equal(backup.version, 5);
       assert.equal(backup.sentences.length, 1); assert.equal(backup.practiceAttempts.length, 1);
       await experiences.removeSentence('saved'); await articles.remove(articleId);
       await service.restoreData(backup);

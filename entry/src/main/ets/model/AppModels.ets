@@ -1,5 +1,6 @@
-import { PracticeAttempt, SentenceMemory, ReadingProgress } from './ExperienceModels';
+import { PracticeAttempt, SentenceMemory, SentenceRecallAttempt, ReadingProgress } from './ExperienceModels';
 import { Article } from './ArticleModels';
+import { PendingWordDraft } from './PendingWordModels';
 export enum ReviewResult {
   FORGET = 0,
   FUZZY = 1,
@@ -238,7 +239,7 @@ export class DictionaryCatalog {
 
 export class DataExport {
   format: string = 'ciying-learning-backup';
-  version: number = 4;
+  version: number = 5;
   dictionaryVersion: number = 0;
   compact: boolean = false;
   wordIdentities: WordIdentity[] = [];
@@ -256,6 +257,8 @@ export class DataExport {
   glowRecords: GlowRecord[] = [];
   practiceAttempts: PracticeAttempt[] = [];
   sentences: SentenceMemory[] = [];
+  sentenceRecallAttempts: SentenceRecallAttempt[] = [];
+  pendingWords: PendingWordDraft[] = [];
   articles: Article[] = [];
   readingProgress: ReadingProgress[] = [];
 }

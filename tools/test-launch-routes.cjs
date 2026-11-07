@@ -14,7 +14,7 @@ const transpile = source => ts.transpileModule(source, { compilerOptions: {
 } }).outputText;
 const routeExports = {};
 new Function('exports', transpile(read('utils/LaunchRouteUtils.ets')))(routeExports);
-const { TODAY_PLAN_DEEP_LINK, resolveLaunchRoute } = routeExports;
+const { TODAY_PLAN_DEEP_LINK, MISTAKES_DEEP_LINK, SENTENCES_DEEP_LINK, parseLaunchUri, resolveLaunchRoute } = routeExports;
 const drain = async () => { await new Promise(resolve => setImmediate(resolve)); };
 let checks = 0;
 const check = async (label, action) => { await action(); checks++; console.log(`PASS ${label}`); };
@@ -37,6 +37,7 @@ function makeAbility() {
     SharedWordService: shareExports.SharedWordService,
     AppStorage: appStorage,
     ConfigurationConstant: { ColorMode: { COLOR_MODE_NOT_SET: -1 } },
+    parseLaunchUri,
     resolveLaunchRoute
   };
   const source = read('entryability/EntryAbility.ets').replace(/^import .*;\s*$/gm, '');
@@ -188,8 +189,14 @@ function makeRouteHandler({ ready = true, onboarded = true, restoring = false } 
     assert.ok(ability.skills.some(skill => skill.actions.includes('ohos.want.action.home')));
     const skill = ability.skills.find(item => item.actions.includes('ohos.want.action.viewData'));
     assert.ok(skill.entities.includes('entity.system.browsable'));
-    assert.deepEqual(skill.uris, [{ scheme: 'lexiglow', host: 'study', path: 'plan' }]);
+    assert.deepEqual(skill.uris[0], { scheme: 'lexiglow', host: 'study', path: 'plan' });
     assert.equal(`${skill.uris[0].scheme}://${skill.uris[0].host}/${skill.uris[0].path}`, TODAY_PLAN_DEEP_LINK);
+    assert.equal(resolveLaunchRoute(MISTAKES_DEEP_LINK, ''), 'mistakes');
+    assert.equal(resolveLaunchRoute(SENTENCES_DEEP_LINK, ''), 'sentences');
+    assert.equal(resolveLaunchRoute('lexiglow://word?spelling=Ephemeral', ''), 'lookupWord');
+    assert.equal(parseLaunchUri('lexiglow://word?spelling=Ephemeral').spelling, 'ephemeral');
+    assert.equal(resolveLaunchRoute('lexiglow://article?id=12', ''), 'article');
+    assert.equal(parseLaunchUri('lexiglow://article?id=12').articleId, 12);
   });
   console.log(`${checks} launch route checks passed`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

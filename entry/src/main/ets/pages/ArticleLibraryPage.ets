@@ -6,6 +6,7 @@ import { MAX_ARTICLE_CHARACTERS, MAX_ARTICLES } from '../utils/ArticleTokenizer'
 import { AdaptiveWindowState, adaptiveWindowState } from '../utils/AdaptiveWindow';
 import { PAGE_MAX_WIDTH, pageHorizontalPadding } from '../utils/ResponsiveLayout';
 import { dateKey } from '../utils/TimeUtils';
+import { READING_LEVELS, READING_TOPICS, filterReadingRecommendations, readingRecommendationReason } from '../utils/CuratedReadingUtils';
 
 @ComponentV2
 export struct ArticleLibraryPage {
@@ -14,6 +15,8 @@ export struct ArticleLibraryPage {
   @Local windowState: AdaptiveWindowState = adaptiveWindowState();
   @Local pageWidth: number = 0;
   @Local recommendations: ReadingRecommendation[] = [];
+  @Local selectedLevel: string = '全部';
+  @Local selectedTopic: string = '全部';
   @Local recommendationError: string = '';
   @Local articles: ArticleSummary[] = [];
   @Local draftTitle: string = '';
@@ -98,6 +101,12 @@ export struct ArticleLibraryPage {
     } finally { if (version === this.requestVersion) { this.busy = false; } }
   }
 
+  private filteredRecommendations(): ReadingRecommendation[] {
+    return filterReadingRecommendations(this.recommendations, this.selectedLevel, this.selectedTopic);
+  }
+
+  private recommendationReason(item: ReadingRecommendation): string { return readingRecommendationReason(item); }
+
   @Builder
   private importEditor() {
     Column({ space: 14 }) {
@@ -160,17 +169,50 @@ export struct ArticleLibraryPage {
             Text('今日读得懂').fontSize(28).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary')).width('100%')
             Text('从学过的词出发，读一小段生活。覆盖率按不同词形计算，只反映已学记录，不代表理解程度。')
               .fontSize(14).lineHeight(23).fontColor($r('app.color.text_secondary')).width('100%')
+            Text('按篇幅和用词选择一篇。入门、基础、进阶是内容分组，可以随时换着读。')
+              .fontSize(13).lineHeight(22).fontColor($r('app.color.text_secondary')).width('100%')
+            Flex({ wrap: FlexWrap.Wrap }) {
+              ForEach(READING_LEVELS, (level: string) => {
+                Button(level, { type: ButtonType.Normal }).height(44).fontSize(14).borderRadius(14)
+                  .margin({ right: 8, bottom: 8 }).padding({ left: 16, right: 16 })
+                  .backgroundColor(this.selectedLevel === level ? $r('app.color.brand_ink') : $r('app.color.surface'))
+                  .fontColor(this.selectedLevel === level ? $r('app.color.inverse_text') : $r('app.color.text_primary'))
+                  .accessibilityText(`${level === '全部' ? '全部难度' : level}${this.selectedLevel === level ? '，已选中' : ''}`)
+                  .onClick(() => { this.selectedLevel = level; })
+              }, (level: string) => `level-${level}`)
+            }.width('100%')
+            Flex({ wrap: FlexWrap.Wrap }) {
+              ForEach(READING_TOPICS, (topic: string) => {
+                Button(topic, { type: ButtonType.Normal }).height(44).fontSize(14).borderRadius(14)
+                  .margin({ right: 8, bottom: 8 }).padding({ left: 16, right: 16 })
+                  .backgroundColor(this.selectedTopic === topic ? $r('app.color.brand_ink') : $r('app.color.surface'))
+                  .fontColor(this.selectedTopic === topic ? $r('app.color.inverse_text') : $r('app.color.text_primary'))
+                  .accessibilityText(`${topic === '全部' ? '全部主题' : topic}${this.selectedTopic === topic ? '，已选中' : ''}`)
+                  .onClick(() => { this.selectedTopic = topic; })
+              }, (topic: string) => `topic-${topic}`)
+            }.width('100%')
+            if (this.recommendations.length > 0) {
+              Text(`精选 ${this.recommendations.length} 篇 · 当前显示 ${this.filteredRecommendations().length} 篇`)
+                .fontSize(13).fontColor($r('app.color.text_secondary')).width('100%')
+            }
             if (this.recommendationError) { Button(this.recommendationError).onClick(() => { this.loadRecommendations(); }) }
           }.width('100%')
         }
-        ForEach(this.recommendations, (item: ReadingRecommendation) => {
+        ForEach(this.filteredRecommendations(), (item: ReadingRecommendation) => {
           ListItem() {
             Button({ type: ButtonType.Normal }) {
               Column({ space: 12 }) {
                 Text(item.article.title).fontSize(21).fontWeight(FontWeight.Medium).fontColor($r('app.color.text_primary'))
+                Text(`${item.article.level} · ${item.article.topic} · 约 ${item.article.readingMinutes} 分钟`)
+                  .fontSize(13).fontColor($r('app.color.text_secondary'))
+                Text(this.recommendationReason(item)).fontSize(14).lineHeight(23).fontColor($r('app.color.text_secondary'))
                 Text(`${item.learnedCount} 个词形有已学记录 · 覆盖 ${item.coverage}%`).fontSize(14).fontColor($r('app.color.text_secondary'))
-                Text(`留意这几个词：${item.focusWords.join(' · ')}`).fontSize(13).lineHeight(22).fontColor($r('app.color.text_secondary'))
-                Text(item.completed ? '已读完 · 再读一次 →' : item.paragraphIndex > 0 ? '接着上次读 →' : '开始阅读 · 约 2 分钟 →')
+                if (item.focusWords.length > 0) {
+                  Text(`留意这几个词：${item.focusWords.join(' · ')}`).fontSize(13).lineHeight(22).fontColor($r('app.color.text_secondary'))
+                } else if (item.article.focusHeadwords.length > 0) {
+                  Text(`文中词语：${item.article.focusHeadwords.join(' · ')}`).fontSize(13).lineHeight(22).fontColor($r('app.color.text_secondary'))
+                }
+                Text(item.completed ? '已读完 · 再读一次 →' : item.paragraphIndex > 0 ? '接着上次读 →' : '开始阅读 →')
                   .fontSize(15).fontColor($r('app.color.success'))
               }.padding(22).width('100%').alignItems(HorizontalAlign.Start)
             }.width('100%').backgroundColor($r('app.color.surface')).borderRadius(22)
